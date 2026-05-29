@@ -42,6 +42,11 @@ export const orderLookupFields = [
   'externalId',
   'orderDate',
   'statusId',
+  'customerFirstName',
+  'customerLastName',
+  'customerName',
+  'partyId',
+  'customerPartyId',
   'salesChannelEnumId',
   'grandTotal',
   'currencyUom',
@@ -257,6 +262,10 @@ export function normalizeOrderCollectionResponse(data: any): OrderSearchResult {
 
 export function normalizeOrderDoc(doc: any): Order {
   const orderId = toStringValue(doc.orderId ?? doc.hcOrderId ?? doc.externalId ?? doc.orderName);
+  const customerName = toStringValue(doc.customerName) || [doc.customerFirstName, doc.customerLastName]
+    .map((value) => toStringValue(value))
+    .filter(Boolean)
+    .join(' ');
 
   return {
     id: orderId,
@@ -264,6 +273,7 @@ export function normalizeOrderDoc(doc: any): Order {
     orderDate: toStringValue(doc.orderDate ?? doc.orderEntryDate),
     status: toStringValue(doc.orderStatusDesc ?? doc.statusId, 'Created') as Order['status'],
     customerId: toStringValue(doc.customerPartyId ?? doc.customerId ?? doc.partyId),
+    customerName,
     channel: toStringValue(doc.salesChannelDesc ?? doc.salesChannelEnumId ?? doc.productStoreId),
     total: toNumberValue(doc.grandTotal),
     currency: toStringValue(doc.currencyUom ?? doc.presentmentCurrencyUom, 'USD'),

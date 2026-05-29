@@ -7,40 +7,33 @@
         </ion-buttons>
         <ion-title>Find returns</ion-title>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar v-model="searchQuery" placeholder="Return ID, order, customer" />
-      </ion-toolbar>
     </ion-header>
 
     <ion-content>
-      <ion-list>
-        <ion-list-header>
-          <ion-label>Filters</ion-label>
-          <ion-button fill="clear" @click="clearFilters">Clear</ion-button>
-        </ion-list-header>
-        <ion-item>
-          <ion-select v-model="searchFilters.status" label="Status" interface="popover">
-            <ion-select-option value="All">All statuses</ion-select-option>
-            <ion-select-option v-for="option in returnStatuses" :key="option.statusId" :value="option.statusId">
-              {{ option.description || option.statusId }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-select v-model="searchFilters.productStoreId" label="Product store" interface="popover">
-            <ion-select-option value="All">All stores</ion-select-option>
-            <ion-select-option v-for="store in productStores" :key="store.productStoreId" :value="store.productStoreId">
-              {{ store.storeName || store.productStoreId }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-input v-model="searchFilters.dateFrom" label="From" type="date" />
-        </ion-item>
-        <ion-item>
-          <ion-input v-model="searchFilters.dateThru" label="Thru" type="date" />
-        </ion-item>
-      </ion-list>
+      <SearchFilterCard
+        v-model="searchQuery"
+        placeholder="Return ID, order, customer"
+        @clear="clearFilters"
+      >
+        <ion-select v-model="searchFilters.status" label="Status" label-placement="stacked" interface="popover">
+          <ion-select-option value="All">All statuses</ion-select-option>
+          <ion-select-option v-for="option in returnStatuses" :key="option.statusId" :value="option.statusId">
+            {{ option.description || option.statusId }}
+          </ion-select-option>
+        </ion-select>
+        <ion-select v-model="searchFilters.productStoreId" label="Product store" label-placement="stacked" interface="popover">
+          <ion-select-option value="All">All stores</ion-select-option>
+          <ion-select-option v-for="store in productStores" :key="store.productStoreId" :value="store.productStoreId">
+            {{ store.storeName || store.productStoreId }}
+          </ion-select-option>
+        </ion-select>
+        <ion-input v-model="searchFilters.dateFrom" label="Return date from" label-placement="stacked" type="date" />
+        <ion-input v-model="searchFilters.dateThru" label="Return date thru" label-placement="stacked" type="date" />
+        <ion-select v-model="returnSort" label="Sort by return date" label-placement="stacked" interface="popover">
+          <ion-select-option value="-requestedDate">Newest first</ion-select-option>
+          <ion-select-option value="requestedDate">Oldest first</ion-select-option>
+        </ion-select>
+      </SearchFilterCard>
 
       <ion-progress-bar v-if="loading" type="indeterminate" />
 
@@ -81,7 +74,6 @@
 
 <script setup lang="ts">
 import {
-  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
@@ -96,7 +88,6 @@ import {
   IonNote,
   IonPage,
   IonProgressBar,
-  IonSearchbar,
   IonSelect,
   IonSelectOption,
   IonTitle,
@@ -110,12 +101,14 @@ import { useUserStore } from '@/store/user';
 import { useUtilStore } from '@/store/util';
 import EmptyState from '@/components/EmptyState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import SearchFilterCard from '@/components/SearchFilterCard.vue';
 
 const returnsStore = useReturnsStore();
 const userStore = useUserStore();
 const utilStore = useUtilStore();
 const { searchQuery, searchFilters, searchResults, searchTotal, loading, error, hasMore } = storeToRefs(returnsStore);
 const debounceTimer = ref<ReturnType<typeof setTimeout>>();
+const returnSort = ref('-requestedDate');
 
 const returnStatuses = computed(() => utilStore.getStatusItemsByType('RETURN_HEADER_STATUS'));
 const productStores = computed(() => userStore.getUserProfile?.stores || []);
@@ -140,6 +133,7 @@ function scheduleSearch() {
 
 function clearFilters() {
   returnsStore.searchQuery = '';
+  returnSort.value = '-requestedDate';
   returnsStore.searchFilters = {
     status: 'All',
     dateFrom: '',

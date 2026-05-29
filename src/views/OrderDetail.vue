@@ -15,30 +15,39 @@
     </ion-header>
 
     <ion-content v-if="order">
-      <ion-list>
-        <ion-list-header>
-          <ion-label>Summary</ion-label>
-        </ion-list-header>
-        <ion-item>
-          <ion-label>
-            <h2>{{ order.externalId || order.id }}</h2>
-            <p>{{ order.channel || order.productStoreId }}</p>
-          </ion-label>
-          <ion-note slot="end">{{ order.status }}</ion-note>
-        </ion-item>
-        <ion-item>
-          <ion-label>Order date</ion-label>
-          <ion-note slot="end">{{ order.orderDate || 'Unavailable' }}</ion-note>
-        </ion-item>
-        <ion-item>
-          <ion-label>Total</ion-label>
-          <ion-note slot="end">{{ money(order.total, order.currency) }}</ion-note>
-        </ion-item>
-        <ion-item>
-          <ion-label>Fulfillment</ion-label>
-          <ion-note slot="end">{{ order.fulfillmentStatus || 'Unavailable' }}</ion-note>
-        </ion-item>
-      </ion-list>
+      <ion-card>
+        <ion-card-header>
+          <ion-card-subtitle>{{ orderContext }}</ion-card-subtitle>
+          <ion-card-title>{{ order.externalId || order.id }}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label>
+                <h2>{{ order.id }}</h2>
+                <p>{{ orderDate }}</p>
+              </ion-label>
+              <ion-badge slot="end">{{ readableValue(order.status) || 'Status unavailable' }}</ion-badge>
+            </ion-item>
+            <ion-item v-if="order.customerId" :router-link="`/customers/${order.customerId}`">
+              <ion-label>Customer</ion-label>
+              <ion-note slot="end">{{ order.customerId }}</ion-note>
+            </ion-item>
+            <ion-item v-for="detail in orderHeaderDetails" :key="detail.label">
+              <ion-label>{{ detail.label }}</ion-label>
+              <ion-note slot="end">{{ detail.value }}</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Fulfillment</ion-label>
+              <ion-note slot="end">{{ readableValue(order.fulfillmentStatus) || 'Unavailable' }}</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Payment</ion-label>
+              <ion-note slot="end">{{ readableValue(order.paymentStatus) || 'Unavailable' }}</ion-note>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
 
       <ion-accordion-group>
         <ion-accordion value="customer">
@@ -132,15 +141,49 @@
             <ion-item v-if="orderStore.detailSectionErrors.shipments">
               <ion-label>{{ orderStore.detailSectionErrors.shipments }}</ion-label>
             </ion-item>
-            <ion-item v-for="shipGroup in order.shipGroups" :key="shipGroup.id || shipGroup.shipmentId">
-              <ion-label>
-                <h2>{{ shipGroup.method || shipGroup.id }}</h2>
-                <p>{{ shipGroup.facilityName || shipGroup.facilityId }}</p>
-                <p>{{ shipGroup.carrier }} {{ shipGroup.trackingCode }}</p>
-              </ion-label>
-              <ion-note slot="end">{{ shipGroup.status || shipGroup.shipmentId }}</ion-note>
-              <ion-button v-if="canUpdate" slot="end" @click="openShipGroupActions(shipGroup)">Actions</ion-button>
-            </ion-item>
+            <ion-card v-for="shipGroup in order.shipGroups" :key="shipGroup.id || shipGroup.shipmentId">
+              <ion-card-header>
+                <ion-card-subtitle>{{ shipGroup.facilityName || shipGroup.facilityId || 'Facility unavailable' }}</ion-card-subtitle>
+                <ion-card-title>{{ shipGroup.method || shipGroup.id || 'Ship group' }}</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-list lines="full">
+                  <ion-item>
+                    <ion-label>
+                      <h2>{{ shipGroup.id || 'Ship group' }}</h2>
+                      <p>{{ shipGroup.shipmentId || 'No shipment created' }}</p>
+                    </ion-label>
+                    <ion-badge slot="end">{{ readableValue(shipGroup.status) || 'Status unavailable' }}</ion-badge>
+                  </ion-item>
+                  <ion-item v-for="detail in shipGroupDetails(shipGroup)" :key="detail.label">
+                    <ion-label>{{ detail.label }}</ion-label>
+                    <ion-note slot="end">{{ detail.value }}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>
+                      <h2>Items</h2>
+                      <p>{{ shipGroupItems(shipGroup).length }} item{{ shipGroupItems(shipGroup).length === 1 ? '' : 's' }} in this ship group</p>
+                    </ion-label>
+                  </ion-item>
+                  <ion-item v-for="item in shipGroupItems(shipGroup)" :key="item.id">
+                    <ion-label>
+                      <h2>{{ item.name }}</h2>
+                      <p>{{ item.sku }} · {{ readableValue(item.status) || item.status }}</p>
+                      <p>Ordered {{ item.quantity }} · Shipped {{ item.shippedQuantity || 0 }} · Cancelled {{ item.cancelledQuantity || 0 }}</p>
+                    </ion-label>
+                    <ion-note slot="end">{{ money(item.unitPrice, order.currency) }}</ion-note>
+                    <ion-button v-if="canUpdate" slot="end" @click="openItemActions(item)">Actions</ion-button>
+                  </ion-item>
+                  <ion-item v-if="!shipGroupItems(shipGroup).length">
+                    <ion-label>No items found for this ship group</ion-label>
+                  </ion-item>
+                  <ion-item v-if="canUpdate">
+                    <ion-label>Ship group actions</ion-label>
+                    <ion-button slot="end" @click="openShipGroupActions(shipGroup)">Actions</ion-button>
+                  </ion-item>
+                </ion-list>
+              </ion-card-content>
+            </ion-card>
             <ion-item v-for="shipment in orderShipments" :key="shipment.id" :router-link="`/shipments/${shipment.id}`">
               <ion-label>
                 <h2>{{ shipment.id }}</h2>
@@ -359,13 +402,17 @@ import {
   IonBadge,
   IonButton,
   IonButtons,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonCardSubtitle,
+  IonCardTitle,
   IonContent,
   IonHeader,
   IonInput,
   IonItem,
   IonLabel,
   IonList,
-  IonListHeader,
   IonMenuButton,
   IonNote,
   IonPage,
@@ -419,6 +466,43 @@ const itemsWithTransitions = computed(() => (order.value?.items || []).map((item
   transitions: utilStore.getAllowedTransitions(item.status)
 })).filter((entry) => entry.transitions.length));
 const transitionCount = computed(() => itemsWithTransitions.value.reduce((count, entry) => count + entry.transitions.length, 0));
+const orderDate = computed(() => formatDateTime(order.value?.orderDate || order.value?.entryDate));
+const orderContext = computed(() => {
+  const channel = readableValue(order.value?.channel || order.value?.productStoreId) || 'Sales order';
+  const priority = order.value?.priority && order.value.priority !== order.value.status ? readableValue(order.value.priority) : '';
+
+  return [channel, priority].filter(Boolean).join(' · ');
+});
+const orderHeaderDetails = computed(() => {
+  if (!order.value) return [];
+
+  return [
+    {
+      label: 'Channel',
+      value: readableValue(order.value.channel || order.value.productStoreId) || 'Unavailable'
+    },
+    {
+      label: 'Product store',
+      value: order.value.productStoreId || 'Unavailable'
+    },
+    {
+      label: 'Total',
+      value: money(order.value.total, order.value.currency)
+    },
+    {
+      label: 'Items',
+      value: String(order.value.items.length)
+    },
+    {
+      label: 'Shipments',
+      value: String(order.value.shipmentIds.length || orderShipments.value.length || order.value.shipGroups?.length || 0)
+    },
+    {
+      label: 'Returns',
+      value: String(order.value.returnIds.length || orderReturns.value.length || 0)
+    }
+  ];
+});
 
 onMounted(loadOrder);
 
@@ -699,7 +783,90 @@ function compactPayload(data: Record<string, string>) {
   return Object.fromEntries(Object.entries(data).filter(([, value]) => String(value || '').trim()));
 }
 
+function shipGroupItems(shipGroup: NonNullable<Order['shipGroups']>[number]) {
+  if (!order.value) return [];
+
+  return order.value.items.filter((item) => item.shipGroupSeqId === shipGroup.id);
+}
+
+function shipGroupDetails(shipGroup: NonNullable<Order['shipGroups']>[number]) {
+  return [
+    {
+      label: 'Facility',
+      value: shipGroup.facilityName || shipGroup.facilityId
+    },
+    {
+      label: 'Carrier',
+      value: [shipGroup.carrier, shipGroup.trackingCode].filter(Boolean).join(' ')
+    },
+    {
+      label: 'Shipping instructions',
+      value: shipGroup.shippingInstructions
+    },
+    {
+      label: 'Gift message',
+      value: shipGroup.giftMessage
+    },
+    {
+      label: 'May split',
+      value: yesNoValue(shipGroup.maySplit)
+    },
+    {
+      label: 'Gift',
+      value: yesNoValue(shipGroup.isGift)
+    },
+    {
+      label: 'Ship after',
+      value: formatDateTime(shipGroup.shipAfterDate)
+    },
+    {
+      label: 'Ship by',
+      value: formatDateTime(shipGroup.shipByDate)
+    },
+    {
+      label: 'Estimated ship',
+      value: formatDateTime(shipGroup.estimatedShipDate)
+    },
+    {
+      label: 'Estimated delivery',
+      value: formatDateTime(shipGroup.estimatedDeliveryDate)
+    }
+  ].filter((detail) => detail.value && detail.value !== 'Order date unavailable');
+}
+
 function money(value: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(value);
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return 'Order date unavailable';
+
+  const numericValue = Number(value);
+  const date = Number.isFinite(numericValue) ? new Date(numericValue) : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(date);
+}
+
+function readableValue(value?: string) {
+  if (!value) return '';
+
+  return value
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function yesNoValue(value?: string) {
+  if (!value) return '';
+  if (value === 'Y') return 'Yes';
+  if (value === 'N') return 'No';
+  return readableValue(value);
 }
 </script>

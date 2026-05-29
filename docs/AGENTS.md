@@ -8,7 +8,8 @@
 4. **`MIGRATION_PLAN.md`** — sequenced phases.
 5. **`ENDPOINTS.md`** — verified Moqui REST catalog.
 6. **`LEGACY_SCREENS.md`** — OFBiz screen catalog with features to migrate.
-7. The single `briefs/*.md` that matches your assigned stream.
+7. **`AS_BEAUTY_ORDER_MANAGER_SPEC.md`** — read this before AS Beauty RFP-driven feature work.
+8. The single `briefs/*.md` that matches your assigned stream.
 
 If you're a fresh agent and don't know what stream you're on, default to the next unstarted brief by number.
 
@@ -23,6 +24,7 @@ docs/
 ├── MIGRATION_PLAN.md     ← phase-by-phase plan
 ├── ENDPOINTS.md          ← Moqui REST catalog
 ├── LEGACY_SCREENS.md     ← OFBiz screen catalog
+├── AS_BEAUTY_ORDER_MANAGER_SPEC.md ← AS Beauty order-manager feature spec
 └── briefs/
     ├── 00-scaffold.md       ← workspace integration
     ├── 01-auth.md           ← login + user store

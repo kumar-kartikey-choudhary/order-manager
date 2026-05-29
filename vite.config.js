@@ -18,6 +18,7 @@ export default defineConfig({
   },
   resolve: {
     dedupe: ['vue', 'pinia'],
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.mts', '.jsx', '.json'],
     alias: {
       '@': path.resolve(__dirname, 'src'),
       '@common': path.resolve(__dirname, '../../common')

@@ -509,6 +509,7 @@ function normalizeOrderDetail(detail: any): Order {
     orderDate: toStringValue(detail.orderDate ?? detail.orderEntryDate),
     status: toStringValue(detail.orderStatusId ?? detail.statusId ?? detail.orderStatusDesc, 'Created'),
     customerId: selectCustomerIdFromRoles(responseList(detail.roles)) || toStringValue(detail.partyId ?? detail.customerPartyId),
+    customerName,
     channel: toStringValue(detail.salesChannel ?? detail.salesChannelEnumId ?? detail.productStoreId),
     total: toNumberValue(detail.grandTotal),
     currency: toStringValue(detail.currencyUom ?? detail.presentmentCurrencyUom, 'USD'),
@@ -542,7 +543,17 @@ function normalizeShipGroup(shipGroup: any) {
     trackingCode: toStringValue(shipGroup.trackingCode ?? shipGroup.trackingIdNumber),
     carrier: toStringValue(shipGroup.carrierPartyId),
     facilityId: toStringValue(shipGroup.facilityId),
-    facilityName: toStringValue(shipGroup.facilityName)
+    facilityName: toStringValue(shipGroup.facilityName),
+    shippingInstructions: toStringValue(shipGroup.shippingInstructions),
+    giftMessage: toStringValue(shipGroup.giftMessage),
+    maySplit: toStringValue(shipGroup.maySplit),
+    isGift: toStringValue(shipGroup.isGift),
+    shipAfterDate: toStringValue(shipGroup.shipAfterDate),
+    shipByDate: toStringValue(shipGroup.shipByDate),
+    estimatedShipDate: toStringValue(shipGroup.estimatedShipDate),
+    estimatedDeliveryDate: toStringValue(shipGroup.estimatedDeliveryDate),
+    contactMechId: toStringValue(shipGroup.contactMechId),
+    telecomContactMechId: toStringValue(shipGroup.telecomContactMechId)
   };
 }
 

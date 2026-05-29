@@ -266,6 +266,7 @@ export interface Order {
   orderDate: string;
   status: OrderStatus;
   customerId: string;
+  customerName?: string;
   channel: string;
   total: number;
   currency: string;
@@ -294,6 +295,16 @@ export interface Order {
     carrier: string;
     facilityId: string;
     facilityName: string;
+    shippingInstructions?: string;
+    giftMessage?: string;
+    maySplit?: string;
+    isGift?: string;
+    shipAfterDate?: string;
+    shipByDate?: string;
+    estimatedShipDate?: string;
+    estimatedDeliveryDate?: string;
+    contactMechId?: string;
+    telecomContactMechId?: string;
   }>;
   contactInfo?: Address[];
 }

@@ -7,40 +7,33 @@
         </ion-buttons>
         <ion-title>Find shipments</ion-title>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar v-model="searchQuery" placeholder="Order, tracking code, shipment ID" />
-      </ion-toolbar>
     </ion-header>
 
     <ion-content>
-      <ion-list>
-        <ion-list-header>
-          <ion-label>Filters</ion-label>
-          <ion-button fill="clear" @click="clearFilters">Clear</ion-button>
-        </ion-list-header>
-        <ion-item>
-          <ion-select v-model="searchFilters.status" label="Status" interface="popover">
-            <ion-select-option value="All">All statuses</ion-select-option>
-            <ion-select-option v-for="option in shipmentStatuses" :key="option.statusId" :value="option.statusId">
-              {{ option.description || option.statusId }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-select v-model="searchFilters.carrierPartyId" label="Carrier" interface="popover">
-            <ion-select-option value="All">All carriers</ion-select-option>
-            <ion-select-option v-for="carrier in carriers" :key="carrier" :value="carrier">
-              {{ carrier }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-input v-model="searchFilters.dateFrom" label="From" type="date" />
-        </ion-item>
-        <ion-item>
-          <ion-input v-model="searchFilters.dateThru" label="Thru" type="date" />
-        </ion-item>
-      </ion-list>
+      <SearchFilterCard
+        v-model="searchQuery"
+        placeholder="Order, tracking code, shipment ID"
+        @clear="clearFilters"
+      >
+        <ion-select v-model="searchFilters.status" label="Status" label-placement="stacked" interface="popover">
+          <ion-select-option value="All">All statuses</ion-select-option>
+          <ion-select-option v-for="option in shipmentStatuses" :key="option.statusId" :value="option.statusId">
+            {{ option.description || option.statusId }}
+          </ion-select-option>
+        </ion-select>
+        <ion-select v-model="searchFilters.carrierPartyId" label="Carrier" label-placement="stacked" interface="popover">
+          <ion-select-option value="All">All carriers</ion-select-option>
+          <ion-select-option v-for="carrier in carriers" :key="carrier" :value="carrier">
+            {{ carrier }}
+          </ion-select-option>
+        </ion-select>
+        <ion-input v-model="searchFilters.dateFrom" label="Ship date from" label-placement="stacked" type="date" />
+        <ion-input v-model="searchFilters.dateThru" label="Ship date thru" label-placement="stacked" type="date" />
+        <ion-select v-model="shipmentSort" label="Sort by ship date" label-placement="stacked" interface="popover">
+          <ion-select-option value="-shipDate">Newest first</ion-select-option>
+          <ion-select-option value="shipDate">Oldest first</ion-select-option>
+        </ion-select>
+      </SearchFilterCard>
 
       <ion-progress-bar v-if="loading" type="indeterminate" />
 
@@ -81,7 +74,6 @@
 
 <script setup lang="ts">
 import {
-  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
@@ -96,7 +88,6 @@ import {
   IonNote,
   IonPage,
   IonProgressBar,
-  IonSearchbar,
   IonSelect,
   IonSelectOption,
   IonTitle,
@@ -109,11 +100,13 @@ import { useShipmentsStore } from '@/store/shipments';
 import { useUtilStore } from '@/store/util';
 import EmptyState from '@/components/EmptyState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import SearchFilterCard from '@/components/SearchFilterCard.vue';
 
 const shipmentsStore = useShipmentsStore();
 const utilStore = useUtilStore();
 const { searchQuery, searchFilters, searchResults, searchTotal, loading, error, hasMore } = storeToRefs(shipmentsStore);
 const debounceTimer = ref<ReturnType<typeof setTimeout>>();
+const shipmentSort = ref('-shipDate');
 
 const shipmentStatuses = computed(() => utilStore.getStatusItemsByType('SHIPMENT_STATUS'));
 const carriers = computed(() => {
@@ -142,6 +135,7 @@ function scheduleSearch() {
 
 function clearFilters() {
   shipmentsStore.searchQuery = '';
+  shipmentSort.value = '-shipDate';
   shipmentsStore.searchFilters = {
     status: 'All',
     carrierPartyId: 'All',

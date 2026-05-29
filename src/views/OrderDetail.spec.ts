@@ -21,4 +21,14 @@ describe('order detail actions', () => {
     expect(source).toContain('openCommunicationActions');
     expect(source).toContain('openShipmentDocumentActions');
   });
+
+  it('groups shipping information into ship group cards with their items', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/OrderDetail.vue'), 'utf8');
+
+    expect(source).toContain('v-for="shipGroup in order.shipGroups"');
+    expect(source).toContain('shipGroupDetails(shipGroup)');
+    expect(source).toContain('shipGroupItems(shipGroup)');
+    expect(source).toContain('Shipping instructions');
+    expect(source).toContain('Facility');
+  });
 });

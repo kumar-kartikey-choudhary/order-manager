@@ -10,7 +10,12 @@ import ReturnSearch from '@/views/ReturnSearch.vue';
 import ReturnDetail from '@/views/ReturnDetail.vue';
 import CustomerSearch from '@/views/CustomerSearch.vue';
 import CustomerDetail from '@/views/CustomerDetail.vue';
+import InflightOrders from '@/views/InflightOrders.vue';
+import UnallocatedOrders from '@/views/UnallocatedOrders.vue';
+import UnwavedOrders from '@/views/UnwavedOrders.vue';
 import Settings from '@/views/Settings.vue';
+import TaskQueue from '@/views/TaskQueue.vue';
+import TaskDetail from '@/views/TaskDetail.vue';
 
 const authGuard = async () => {
   if (!useAuth().isAuthenticated.value) {
@@ -38,6 +43,19 @@ const routes: RouteRecordRaw[] = [
     path: '/orders/:orderId',
     name: 'OrderDetail',
     component: OrderDetail,
+    props: true,
+    beforeEnter: authGuard
+  },
+  {
+    path: '/tasks',
+    name: 'TaskQueue',
+    component: TaskQueue,
+    beforeEnter: authGuard
+  },
+  {
+    path: '/tasks/:taskId',
+    name: 'TaskDetail',
+    component: TaskDetail,
     props: true,
     beforeEnter: authGuard
   },
@@ -78,6 +96,24 @@ const routes: RouteRecordRaw[] = [
     name: 'CustomerDetail',
     component: CustomerDetail,
     props: true,
+    beforeEnter: authGuard
+  },
+  {
+    path: '/inflight-orders',
+    name: 'InflightOrders',
+    component: InflightOrders,
+    beforeEnter: authGuard
+  },
+  {
+    path: '/unallocated-orders',
+    name: 'UnallocatedOrders',
+    component: UnallocatedOrders,
+    beforeEnter: authGuard
+  },
+  {
+    path: '/unwaved-orders',
+    name: 'UnwavedOrders',
+    component: UnwavedOrders,
     beforeEnter: authGuard
   },
   {

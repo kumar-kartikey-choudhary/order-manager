@@ -12,6 +12,7 @@ Start with [`PROJECT.md`](PROJECT.md). If you're an agent picking up work, follo
 - [ENDPOINTS.md](ENDPOINTS.md) — verified Moqui REST catalog
 - [LEGACY_SCREENS.md](LEGACY_SCREENS.md) — OFBiz screen-by-screen catalog of what we're replacing
 - [DEV_TESTING.md](DEV_TESTING.md) — provisioning credentials so you (and agents) can test against live Moqui APIs
+- [AS_BEAUTY_ORDER_MANAGER_SPEC.md](AS_BEAUTY_ORDER_MANAGER_SPEC.md) — AS Beauty RFP-driven feature ownership and implementation spec for the order-manager app
 - [swagger/](swagger/) — fetched OpenAPI specs from `dev-maarg.hotwax.io` + live probe results, used to verify ENDPOINTS.md
 
 ## Briefs (one per work stream)

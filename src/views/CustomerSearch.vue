@@ -7,33 +7,30 @@
         </ion-buttons>
         <ion-title>Find customers</ion-title>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar v-model="searchQuery" placeholder="Name, email, phone" />
-      </ion-toolbar>
     </ion-header>
 
     <ion-content>
-      <ion-list>
-        <ion-list-header>
-          <ion-label>Filters</ion-label>
-          <ion-button fill="clear" @click="clearFilters">Clear</ion-button>
-        </ion-list-header>
-        <ion-item>
-          <ion-select v-model="searchFilters.status" label="Status" interface="popover">
-            <ion-select-option value="All">All statuses</ion-select-option>
-            <ion-select-option v-for="option in customerStatuses" :key="option.statusId" :value="option.statusId">
-              {{ option.description || option.statusId }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-select v-model="searchFilters.partyTypeId" label="Party type" interface="popover">
-            <ion-select-option value="All">All party types</ion-select-option>
-            <ion-select-option value="PERSON">Person</ion-select-option>
-            <ion-select-option value="PARTY_GROUP">Group</ion-select-option>
-          </ion-select>
-        </ion-item>
-      </ion-list>
+      <SearchFilterCard
+        v-model="searchQuery"
+        placeholder="Name, email, phone"
+        @clear="clearFilters"
+      >
+        <ion-select v-model="searchFilters.status" label="Status" label-placement="stacked" interface="popover">
+          <ion-select-option value="All">All statuses</ion-select-option>
+          <ion-select-option v-for="option in customerStatuses" :key="option.statusId" :value="option.statusId">
+            {{ option.description || option.statusId }}
+          </ion-select-option>
+        </ion-select>
+        <ion-select v-model="searchFilters.partyTypeId" label="Party type" label-placement="stacked" interface="popover">
+          <ion-select-option value="All">All party types</ion-select-option>
+          <ion-select-option value="PERSON">Person</ion-select-option>
+          <ion-select-option value="PARTY_GROUP">Group</ion-select-option>
+        </ion-select>
+        <ion-select v-model="customerSort" label="Sort by customer" label-placement="stacked" interface="popover">
+          <ion-select-option value="name">Name A-Z</ion-select-option>
+          <ion-select-option value="-name">Name Z-A</ion-select-option>
+        </ion-select>
+      </SearchFilterCard>
 
       <ion-progress-bar v-if="loading" type="indeterminate" />
 
@@ -74,7 +71,6 @@
 
 <script setup lang="ts">
 import {
-  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
@@ -88,7 +84,6 @@ import {
   IonNote,
   IonPage,
   IonProgressBar,
-  IonSearchbar,
   IonSelect,
   IonSelectOption,
   IonTitle,
@@ -100,11 +95,13 @@ import { useCustomersStore } from '@/store/customers';
 import { useUtilStore } from '@/store/util';
 import EmptyState from '@/components/EmptyState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import SearchFilterCard from '@/components/SearchFilterCard.vue';
 
 const customersStore = useCustomersStore();
 const utilStore = useUtilStore();
 const { searchQuery, searchFilters, searchResults, searchTotal, loading, error, hasMore } = storeToRefs(customersStore);
 const debounceTimer = ref<ReturnType<typeof setTimeout>>();
+const customerSort = ref('name');
 
 const customerStatuses = computed(() => utilStore.getStatusItemsByType('PARTY_STATUS'));
 
@@ -128,6 +125,7 @@ function scheduleSearch() {
 
 function clearFilters() {
   customersStore.searchQuery = '';
+  customerSort.value = 'name';
   customersStore.searchFilters = {
     status: 'All',
     partyTypeId: 'PERSON',

@@ -110,12 +110,7 @@
 
           <aside class="order-detail-timeline">
             <ion-item lines="none">
-              <ion-label>
-                <h2>Order timeline</h2>
-              </ion-label>
-              <ion-badge :color="statusBadgeColor(order.status)" slot="end">
-                {{ readableValue(order.status) || 'Status unavailable' }}
-              </ion-badge>
+              <h2>Timeline</h2>
             </ion-item>
 
             <ion-list lines="full" class="order-timeline">

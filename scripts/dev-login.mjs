@@ -24,7 +24,7 @@ const appRoot = path.resolve(here, '..');
 const envPath = path.join(appRoot, '.env.local');
 
 if (!fs.existsSync(envPath)) {
-  fail(`No .env.local at ${envPath}. Copy .env.local.example to .env.local and fill in VITE_DEV_OMS / VITE_DEV_USERNAME / VITE_DEV_PASSWORD.`);
+  fail(`No .env.local at ${envPath}. Copy .env.example to .env.local and fill in VITE_DEV_OMS / VITE_DEV_USERNAME / VITE_DEV_PASSWORD.`);
 }
 
 const env = parseDotenv(fs.readFileSync(envPath, 'utf8'));

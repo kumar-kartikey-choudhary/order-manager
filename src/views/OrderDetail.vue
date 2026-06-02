@@ -181,6 +181,9 @@
           </ion-list-header>
           <ion-item buttonDetail="false" button>
             <ion-checkbox :checked="areAllSelected" justify="start" label-placement="end" @ionChange="toggleSelectAll($event.detail.checked)">Select all</ion-checkbox>
+            <ion-button slot="end" fill="clear" @click.stop>
+              Add item
+            </ion-button>
           </ion-item>
           <ion-accordion-group>
             <ion-accordion v-for="group in groupedItems" :key="group.externalId" :value="group.externalId">

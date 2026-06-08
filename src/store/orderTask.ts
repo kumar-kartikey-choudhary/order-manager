@@ -75,7 +75,7 @@ export const useOrderTaskStore = defineStore('orderTask', {
     async fetchSwapTasks(payload: { viewSize?: any; viewIndex?: any; currentUserPartyId?: string; createdDate_from?: number; createdDate_thru?: number; orderName?: string; orderName_op?: string; salesChannelEnumId?: string } = {}) {
       try {
         const productStoreId = useUserStore().getCurrentProductStore.productStoreId;
-        const listResponse = await api({ url: 'oms/orders/tasks/shipGroupTasks', method: 'GET', params: { ...payload, statusId: 'TASK_CREATED', workEffortTypeId: 'RESOLVE_ONHOLD_ORDER', workEffortPurposeTypeId: 'SWAPPABLE', productStoreId } });
+        const listResponse = await api({ url: 'oms/orders/tasks/shipGroupTasks', method: 'GET', params: { ...payload, statusId: 'TASK_CREATED', productStoreId } });
         const tasks = listResponse.data ?? [];
         const detailedTasks = await Promise.all(
           tasks.map(async (task: any) => {

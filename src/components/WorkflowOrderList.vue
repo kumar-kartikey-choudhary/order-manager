@@ -51,7 +51,7 @@
             :indeterminate="someCurrentPageSelected && !allCurrentPageSelected"
             @ion-change="toggleCurrentPageSelection($event.detail.checked)"
           />
-          <ion-label>{{ orders.length }} {{ orders.length === 1 ? 'order' : 'orders' }}</ion-label>
+          <ion-label>{{ orderTotal }} {{ orderTotal === 1 ? 'order' : 'orders' }}</ion-label>
           <ion-button fill="clear" size="small" @click="toggleSelectMode">
             {{ selectMode ? 'Done' : 'Select' }}
           </ion-button>
@@ -86,8 +86,11 @@
         </ion-item>
       </ion-list>
 
+      <div v-if="isLoading && !orders.length" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent" />
+      </div>
       <EmptyState
-        v-if="!orders.length"
+        v-else-if="!isLoading && !orders.length"
         :title="emptyTitle"
         :message="emptyMessage"
       />
@@ -147,6 +150,7 @@ import {
   IonPage,
   IonSelect,
   IonSelectOption,
+  IonSpinner,
   IonTitle,
   IonToast,
   IonToolbar,
@@ -217,10 +221,18 @@ const allCurrentPageSelected = computed(() => {
 });
 const someCurrentPageSelected = computed(() => currentPageOrderIds.value.some((orderId) => selectedIds.value.has(orderId)));
 
-const hasMore = computed(() => {
-  const b = props.bucket as 'open' | 'inflight' | 'packed';
-  return orderStore.workflowOrders[b].length < orderStore.workflowOrdersTotal[b];
-});
+const isApiBucket = props.bucket === 'open' || props.bucket === 'inflight' || props.bucket === 'packed';
+const apiBucket = props.bucket as 'open' | 'inflight' | 'packed';
+
+const isLoading = computed(() => isApiBucket && orderStore.workflowOrdersLoading[apiBucket]);
+
+const orderTotal = computed(() =>
+  isApiBucket ? orderStore.workflowOrdersTotal[apiBucket] : orders.value.length
+);
+
+const hasMore = computed(() =>
+  isApiBucket && orderStore.workflowOrders[apiBucket].length < orderStore.workflowOrdersTotal[apiBucket]
+);
 
 function queryValue(value: unknown) {
   return Array.isArray(value) ? value[0] : value;
@@ -247,11 +259,20 @@ async function loadMore(event: any) {
 
 onMounted(loadWorkflowOrders);
 
+const debounceTimer = ref<ReturnType<typeof setTimeout>>();
+
+watch(
+  () => [filters.value.query, filters.value.customerName],
+  () => {
+    if (debounceTimer.value) clearTimeout(debounceTimer.value);
+    debounceTimer.value = setTimeout(loadWorkflowOrders, 300);
+  }
+);
+
 watch(
   () => [
-    filters.value.query,
-    filters.value.customerName,
     filters.value.priority,
+    filters.value.productStoreId,
     filters.value.salesChannelEnumId,
     filters.value.facilityId,
     filters.value.shipmentMethodTypeId,

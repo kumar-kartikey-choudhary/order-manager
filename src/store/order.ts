@@ -22,6 +22,7 @@ async function fetchWorkflowPage(
   if (filters.salesChannelEnumId && filters.salesChannelEnumId !== 'All') params.salesChannelEnumId = filters.salesChannelEnumId;
   if (filters.facilityId && filters.facilityId !== 'All') params.facilityId = filters.facilityId;
   if (filters.shipmentMethodTypeId && filters.shipmentMethodTypeId !== 'All') params.shipmentMethodTypeId = filters.shipmentMethodTypeId;
+  if (filters.productStoreId && filters.productStoreId !== 'All') params.productStoreId = filters.productStoreId;
   if (filters.priority !== null) params.priority = filters.priority;
   if (filters.dateFrom) params.orderDateFrom = `${filters.dateFrom} 00:00:00`;
   if (filters.dateThru) params.orderDateThru = `${filters.dateThru} 23:59:59`;
@@ -30,26 +31,8 @@ async function fetchWorkflowPage(
   const docs: any[] = resp.data?.orders || [];
   const total: number = resp.data?.ordersCount ?? docs.length;
 
-  const partyIds = [...new Set(docs.map((d: any) => toStringValue(d.customerPartyId)).filter(Boolean))];
-  const partyMap = new Map<string, any>();
-  if (partyIds.length) {
-    const partyResp = await api({
-      url: 'oms/parties',
-      method: 'get',
-      params: { partyId_op: 'in', partyId: partyIds.join(','), pageSize: partyIds.length }
-    });
-    allDocs(partyResp.data).forEach((doc: any) => {
-      partyMap.set(toStringValue(doc.partyId), doc);
-    });
-  }
-
   const seedStore = useSeedStore();
   const orders = docs.map((doc: any) => {
-    const partyId = toStringValue(doc.customerPartyId);
-    const party = partyMap.get(partyId);
-    const customerName = party
-      ? ([toStringValue(party.firstName), toStringValue(party.lastName)].filter(Boolean).join(' ') || toStringValue(party.groupName) || partyId)
-      : partyId;
     return {
       orderId: toStringValue(doc.orderId),
       orderName: toStringValue(doc.orderName),
@@ -59,15 +42,15 @@ async function fetchWorkflowPage(
       productStoreId: toStringValue(doc.productStoreId),
       productStoreName: (() => { const s = seedStore.productStores.byId[toStringValue(doc.productStoreId)]; return s?.storeName || s?.companyName || toStringValue(doc.productStoreId); })(),
       salesChannelEnumId: toStringValue(doc.salesChannelEnumId),
-      customerName,
-      customerPartyId: partyId,
+      customerName: `${toStringValue(doc.firstName)} ${toStringValue(doc.lastName)}`,
+      customerPartyId: toStringValue(doc.billToPartyId),
       grandTotal: toNumberValue(doc.grandTotal),
       currencyUomId: toStringValue(doc.currencyUom) || 'USD',
       itemCount: toNumberValue(doc.itemCount),
       shipGroupSeqId: toStringValue(doc.shipGroupSeqId),
       shippingMethodTypeId: toStringValue(doc.shipmentMethodTypeId),
       shipmentMethodDesc: (() => { const m = seedStore.shipmentMethodTypes.byId[toStringValue(doc.shipmentMethodTypeId)]; return m?.description || toStringValue(doc.shipmentMethodTypeId); })(),
-      priority: 'NORMAL' as const,
+      priority: toStringValue(doc.priority) === 'Y' ? 'HIGH' as const : 'NORMAL' as const,
       facilityId: toStringValue(doc.facilityId) || null,
       facilityName: toStringValue(doc.facilityName) || null,
       brokeringDate: null,

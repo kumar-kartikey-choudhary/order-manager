@@ -223,6 +223,7 @@ export const useCustomerServiceStore = defineStore('customerService', {
       this.selection[bucket] = [];
     },
     runBulkAction(bucket: WorkflowBucket, actionId: string) {
+      // TODO: API-backed buckets (open/inflight/packed) need real endpoints to execute bulk actions
       const selectedIds = new Set(this.selection[bucket]);
       if (selectedIds.size === 0) return;
 

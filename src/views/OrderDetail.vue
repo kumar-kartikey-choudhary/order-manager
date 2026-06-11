@@ -143,8 +143,8 @@
               <ion-card-title>{{ translate('Fraud risk') }}</ion-card-title>
             </ion-card-header>
             <ion-list lines="none">
-              <ion-item>
-                <ion-icon slot="start" :icon="shieldCheckmarkOutline" :color="riskLevelColor(order.riskLevelEnumId)" />
+              <ion-item button detail @click="selectedSegment = 'risk'">
+                <ion-icon slot="start" :icon="shieldOutline" :color="riskLevelColor(order.riskLevelEnumId)" />
                 <ion-label>
                   <p>{{ translate('Recommendation') }}</p>
                   {{ riskSummary.recommendation }}
@@ -680,7 +680,7 @@
             <ion-label>{{ translate('Fraud risk') }}</ion-label>
           </ion-list-header>
           <ion-item lines="none">
-            <ion-icon slot="start" :icon="shieldCheckmarkOutline" :color="riskLevelColor(order.riskLevelEnumId)" />
+            <ion-icon slot="start" :icon="shieldOutline" :color="riskLevelColor(order.riskLevelEnumId)" />
             <ion-label>
               {{ riskSummary.recommendation }}
               <p>{{ translate('Recommendation') }}</p>
@@ -810,7 +810,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { IonAccordion, IonAccordionGroup, IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardHeader, IonCardTitle, IonCheckbox, IonChip, IonContent, IonFab, IonFabButton, IonFooter, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonModal, IonNote, IonPage, IonPopover, IonProgressBar, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonTextarea, IonThumbnail, IonTitle, IonToolbar, alertController, modalController } from '@ionic/vue';
 import { storeToRefs } from 'pinia';
 import { DateTime } from 'luxon';
-import { businessOutline, chevronDown, closeOutline, createOutline, cubeOutline, ellipsisVertical, gitBranchOutline, informationCircleOutline, saveOutline, sendOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+import { businessOutline, chevronDown, closeOutline, createOutline, cubeOutline, ellipsisVertical, gitBranchOutline, informationCircleOutline, saveOutline, sendOutline, shieldOutline } from 'ionicons/icons';
 import { useOrderDetailStore } from '@/store/orderDetail';
 import { useSeedStore } from '@/store/seed';
 import { useProductCacheStore } from '@/store/productCache';
@@ -827,7 +827,7 @@ import OrderItemAttributesModal from '@/components/OrderItemAttributesModal.vue'
 import ItemFacilityInventoryModal from '@/components/ItemFacilityInventoryModal.vue';
 import AddOrderTaskModal from '@/components/AddOrderTaskModal.vue';
 import { api, commonUtil, DxpShopifyImg, translate } from '@common';
-import { showToast, isKit } from '@/utils';
+import { showToast, isKit, riskLevelColor } from '@/utils';
 import { useOrderTaskStore } from '@/store/orderTask';
 import { useUserStore } from '@/store/user';
 import { useProductStore } from '@/store/productStore';
@@ -1074,17 +1074,6 @@ const riskSummary = computed(() => {
     level: levelEnumId ? seed.enumDescription(levelEnumId) : translate('No risk level')
   };
 });
-
-function riskLevelColor(riskLevelEnumId: string): string {
-  const map: Record<string, string> = {
-    ORLVL_HIGH: 'danger',
-    ORLVL_MEDIUM: 'warning',
-    ORLVL_LOW: 'success',
-    ORLVL_NONE: 'medium',
-    ORLVL_PENDING: 'medium'
-  };
-  return map[riskLevelEnumId] ?? 'medium';
-}
 
 const selectedSegment = ref('items');
 

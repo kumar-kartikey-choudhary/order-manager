@@ -12,8 +12,7 @@ export const showToast = async (message: string) => {
 }
 
 export const isKit = (item: any) => {
-  /*const productCache = useProductCacheStore();
+  const productCache = useProductCacheStore();
   const product = productCache.getProduct(item.productId);
-  return product && product.productTypeId === 'MARKETING_PKG_PICK';*/
-  return true;
+  return product && product.productTypeId === 'MARKETING_PKG_PICK';
 }

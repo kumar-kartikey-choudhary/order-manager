@@ -176,7 +176,7 @@
                     <p class="overline">{{ commonUtil.getProductIdentificationValue(productIdentificationPref.secondaryId, getProduct(group.productId) || {}) }}</p>
                     <div>
                       {{ commonUtil.getProductIdentificationValue(productIdentificationPref.primaryId, getProduct(group.productId) || {}) || group.name }}
-                      <ion-badge class="kit-badge" color="dark" v-if="isKit(item)">{{ translate("Kit") }}</ion-badge>
+                      <ion-badge class="kit-badge" color="dark" v-if="isKit(group)">{{ translate("Kit") }}</ion-badge>
                     </div>
                     <p>{{ group.externalId }}</p>
                   </ion-label>
@@ -187,10 +187,10 @@
                   <p>{{ translate('Qty') }}</p>
                 </ion-label>
 
-                <ion-label class="tablet">
+                <!--<ion-label class="tablet">
                   <ion-badge :color="commonUtil.getStatusColor(group.statusId)">{{ group.status }}</ion-badge>
                   <p>{{ translate('Status') }}</p>
-                </ion-label>
+                </ion-label>-->
                 
                 <ion-label class="ion-text-end">
                   {{ money(group.totalPrice, order.currency) }}
@@ -211,12 +211,12 @@
                       </ion-checkbox>
                     </ion-item>
                     
-                    <ion-chip class="tablet" outline>
+                    <ion-chip class="tablet" outline :disabled="['ITEM_CANCELLED', 'ITEM_COMPLETED'].includes(item.statusId)" @click.stop="rejectAndReleaseItem(item, group.productId)">
                       <ion-icon :icon="businessOutline"></ion-icon>
                       <ion-label>{{ item.facilityName }}</ion-label>
                     </ion-chip>
 
-                    <ion-chip class="tablet" outline>
+                    <ion-chip v-if="item.attributeCount" class="tablet" outline @click.stop="openItemAttributesModal(item)">
                       <ion-icon :icon="gitBranchOutline"></ion-icon>
                       <ion-label>{{ item.attributeCount }}</ion-label>
                     </ion-chip>
@@ -224,32 +224,9 @@
                     <ion-badge class="tablet" :color="commonUtil.getStatusColor(item.statusId)">{{ item.status }}</ion-badge>
 
                     <ion-buttons>
-                      <ion-button fill="clear" size="small" color="success">
-                        {{ translate('Complete') }}
-                      </ion-button>
-                      <ion-button fill="clear" size="small" color="danger">
+                      <ion-button v-if="!['ITEM_CANCELLED', 'ITEM_COMPLETED'].includes(item.statusId)" fill="clear" size="small" color="danger" @click.stop="cancelSingleItem(item)">
                         {{ translate('Cancel') }}
                       </ion-button>
-                      <ion-button
-                        v-if="item.statusId === 'ITEM_COMPLETED' && item.returnableQty > 0"
-                        fill="clear"
-                        size="small"
-                        color="warning"
-                      >
-                        {{ translate('Return') }}
-                      </ion-button>
-                      <ion-button fill="clear" size="small" :id="'item-opt-trigger-' + item.orderItemSeqId">
-                        <ion-icon slot="icon-only" :icon="ellipsisVertical" />
-                      </ion-button>
-                      <ion-popover :trigger="'item-opt-trigger-' + item.orderItemSeqId" dismiss-on-select>
-                        <ion-content>
-                          <ion-list>
-                            <ion-item buttonDetail="false" button>{{ translate('Edit Quantity') }}</ion-item>
-                            <ion-item buttonDetail="false" button>{{ translate('Change Facility') }}</ion-item>
-                            <ion-item buttonDetail="false" button color="danger">{{ translate('Cancel Item') }}</ion-item>
-                          </ion-list>
-                        </ion-content>
-                      </ion-popover>
                     </ion-buttons>
                   </div>
                 </ion-list>
@@ -626,6 +603,7 @@
               <ion-button v-if="isVirtualFacility(shipGroup)" fill="clear" @click="brokerShipGroup(shipGroup.id)">{{ translate('Broker ship group') }}</ion-button>
               <ion-button fill="clear" :disabled="!selectedItemsForShipGroup(shipGroup.id).length" @click="isVirtualFacility(shipGroup) ? parkSelectedItems(shipGroup) : rejectSelectedItems(shipGroup)">{{ isVirtualFacility(shipGroup) ? translate('Park Items') : translate('Pull back') }}</ion-button>
               <ion-button v-if="isVirtualFacility(shipGroup)" fill="clear" :disabled="!selectedItemsForShipGroup(shipGroup.id).length" @click="releaseSelectedItems(shipGroup)">{{ translate('Release') }}</ion-button>
+              <ion-button fill="clear" @click="openAddTaskModal(shipGroup)">{{ translate('Add Task') }}</ion-button>
               <ion-button fill="clear" @click="openAddItemModal(shipGroup)">{{ translate('Add Items') }}</ion-button>
             </div>
           </ion-card>
@@ -650,7 +628,7 @@
             </ion-item>
             <div class="tablet">
               <ion-label class="ion-text-center">
-                {{ hold.purposeTypeId || '-' }}
+                {{ seed.enumDescription(hold.purposeTypeId) || hold.purposeTypeId || '-' }}
                 <p>{{ translate("purpose") }}</p>
               </ion-label>
             </div>
@@ -773,6 +751,9 @@ import ProductInventoryModal from '@/components/ProductInventoryModal.vue';
 import FacilityModal from '@/components/FacilityModal.vue';
 import PhysicalFacilityModal from '@/components/PhysicalFacilityModal.vue';
 import RoutingGroupModal from '@/components/RoutingGroupModal.vue';
+import OrderItemAttributesModal from '@/components/OrderItemAttributesModal.vue';
+import ItemFacilityInventoryModal from '@/components/ItemFacilityInventoryModal.vue';
+import AddOrderTaskModal from '@/components/AddOrderTaskModal.vue';
 import { api, commonUtil, DxpShopifyImg, translate } from '@common';
 import { showToast, isKit } from '@/utils';
 import { useOrderTaskStore } from '@/store/orderTask';
@@ -994,6 +975,7 @@ const groupedItems = computed(() => {
         unitPrice,
         returnedQty,
         returnableQty,
+        attributes: rawItem?.orderItemAttributes || rawItem?.attributes || rawItem?.orderItemAttributeList || [],
         attributeCount: rawItem?.orderItemAttributes?.length || rawItem?.attributes?.length || rawItem?.orderItemAttributeList?.length || 0
       });
     });
@@ -1008,7 +990,10 @@ const selectedSegment = ref('items');
 
 watch(selectedSegment, (segment) => {
   if (!props.orderId) return;
-  if (segment === 'holds') orderDetailStore.fetchOrderHeaderWorkEfforts(props.orderId);
+  if (segment === 'holds') {
+    orderDetailStore.fetchOrderHeaderWorkEfforts(props.orderId);
+    seed.loadEnumsByParentType('WorkEffortPurposeType');
+  }
   if (segment === 'comms') orderDetailStore.fetchCommEvents(props.orderId);
 });
 
@@ -1396,6 +1381,18 @@ async function openFacilityModal(): Promise<string | null> {
   return facilityId ?? null;
 }
 
+async function openItemAttributesModal(item: any) {
+  const modal = await modalController.create({
+    component: OrderItemAttributesModal,
+    componentProps: {
+      orderId: order.value!.id,
+      orderItemSeqId: item.orderItemSeqId,
+      attributes: item.attributes
+    }
+  });
+  await modal.present();
+}
+
 async function brokerShipGroup(shipGroupSeqId: string) {
   const productStoreId = useProductStore().getCurrentProductStore.productStoreId;
   const modal = await modalController.create({ component: RoutingGroupModal, componentProps: { productStoreId } });
@@ -1440,12 +1437,95 @@ async function cancelOrderItems() {
             await orderTaskStore.cancelOrder(raw.orderId, itemsSnapshot.map((item: any) => ({
               orderItemSeqId: item.orderItemSeqId,
               shipGroupSeqId: item.shipGroupSeqId,
+              reason: "NO_VARIANCE_LOG",
+              comment: ""
             })));
             selectedItemIds.value.clear();
             await showToast(translate('Selected items cancelled successfully.'));
             await loadOrder(raw.orderId, true);
           } catch {
             await showToast(translate('Failed to cancel the selected items. Please try again.'));
+          }
+        }
+      }
+    ]
+  });
+  await alert.present();
+}
+
+async function rejectAndReleaseItem(item: any, productId: string) {
+  const orderId = order.value!.id;
+
+  // Step 1 — reject (pull back) the item with hardcoded reason
+  try {
+    await api({
+      url: `oms/orders/${orderId}/reject`,
+      method: 'POST',
+      data: {
+        orderId,
+        items: [{
+          orderItemSeqId: item.orderItemSeqId,
+          quantity: '1',
+          rejectionReasonId: 'NO_VARIANCE_LOG',
+        }],
+      },
+    });
+  } catch {
+    await showToast(translate('Failed to reject the item. Please try again.'));
+    return;
+  }
+
+  // Step 2 — pick a facility with inventory to release to
+  const facilityModal = await modalController.create({
+    component: ItemFacilityInventoryModal,
+    componentProps: { productId }
+  });
+  await facilityModal.present();
+  const { data: facilityId } = await facilityModal.onWillDismiss();
+  if (!facilityId) {
+    // Rejected but no facility chosen — still refresh
+    await loadOrder(orderId, true);
+    return;
+  }
+
+  // Step 3 — release to chosen facility
+  try {
+    await api({
+      url: `oms/orders/${orderId}/items/${item.orderItemSeqId}/allocation`,
+      method: 'POST',
+      data: { facilityId },
+    });
+    await showToast(translate('Item released to facility.'));
+  } catch {
+    await showToast(translate('Failed to release the item. Please try again.'));
+  } finally {
+    await loadOrder(orderId, true);
+  }
+}
+
+async function cancelSingleItem(item: any) {
+  const raw = orderDetailStore.current;
+  if (!raw) return;
+  const alert = await alertController.create({
+    header: translate('Cancel Item'),
+    message: translate('Are you sure you want to cancel this item? This action cannot be undone.'),
+    buttons: [
+      { text: translate('No'), role: 'cancel' },
+      {
+        text: translate('Yes'),
+        role: 'confirm',
+        handler: async () => {
+          try {
+            await orderTaskStore.cancelOrder(raw.orderId, [{
+              orderItemSeqId: item.orderItemSeqId,
+              shipGroupSeqId: item.shipGroupSeqId,
+              reason: "NO_VARIANCE_LOG",
+              comment:""
+            }]);
+            await showToast(translate('Item cancelled successfully.'));
+            await loadOrder(raw.orderId, true);
+          } catch {
+            await showToast(translate('Failed to cancel the item. Please try again.'));
           }
         }
       }
@@ -1472,6 +1552,31 @@ async function viewInventory(productId: string) {
     componentProps: { productId }
   });
   await modal.present();
+}
+
+async function openAddTaskModal(shipGroup: any) {
+  const modal = await modalController.create({ component: AddOrderTaskModal });
+  await modal.present();
+  const { data, role } = await modal.onWillDismiss();
+  if (role !== 'confirm' || !data) return;
+  try {
+    await api({
+      url: 'oms/orders/tasks',
+      method: 'POST',
+      data: [{
+        orderId: order.value!.id,
+        shipGroupSeqId: shipGroup.id,
+        workEffortName: data.workEffortName,
+        workEffortTypeId: data.workEffortTypeId,
+        workEffortPurposeTypeId: data.workEffortPurposeTypeId,
+        description: data.description,
+        statusId: 'TASK_CREATED'
+      }]
+    });
+    await showToast(translate('Tasks created successfully.'));
+  } catch {
+    await showToast(translate('Failed to create tasks. Please try again.'));
+  }
 }
 
 async function openAddItemModal(shipGroup: any) {
@@ -1537,8 +1642,6 @@ async function rejectSelectedItems(shipGroup: any) {
         items: itemIds.map((orderItemSeqId) => ({
           orderItemSeqId,
           quantity: '1',
-          maySplit: 'N',
-          cascadeRejectByProduct: 'N',
           rejectionReasonId,
         })),
       },

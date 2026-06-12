@@ -25,6 +25,10 @@ const orderSolrFields = [
   'orderName',
   'externalOrderId',
   'externalId',
+  'orderItemSeqId',
+  'shipGroupSeqId',
+  'orderItemShipGroupIdentifier',
+  'quantity',
   'orderDate',
   'orderStatusId',
   'orderStatusDesc',
@@ -47,6 +51,14 @@ const orderSolrFields = [
   'shipmentMethodTypeId',
   'shipmentMethodDesc',
   'shipmentId',
+  'facilityId',
+  'reservationFacilityId',
+  'facilityTypeId',
+  'facilityName',
+  'orderFacilityId',
+  'orderFacilityName',
+  'originFacilityProductId',
+  'destinationFacilityProductId',
   'priority'
 ];
 
@@ -81,12 +93,12 @@ export function buildOrderLookupPayload(params: OrderSearchParams = {}) {
 
   if (statusIds.length === 1) filters.push(`orderStatusId:${escapeSolrValue(statusIds[0])}`);
   if (statusIds.length > 1) filters.push(`orderStatusId:(${statusIds.map(escapeSolrValue).join(' OR ')})`);
-  if (params.channel && params.channel !== 'All') filters.push(`salesChannelEnumId: ${escapeSolrValue(params.channel)}`);
-  if (params.productStoreId && params.productStoreId !== 'All') filters.push(`productStoreId: ${escapeSolrValue(params.productStoreId)}`);
+  if (params.channel && params.channel !== 'All') filters.push(`salesChannelEnumId:${escapeSolrValue(params.channel)}`);
+  if (params.productStoreId && params.productStoreId !== 'All') filters.push(`productStoreId:${escapeSolrValue(params.productStoreId)}`);
 
   const facilityIds = (params.facilityIds ?? []).filter((facilityId) => facilityId && facilityId !== 'All');
-  if (facilityIds.length === 1) filters.push(`facilityId: ${escapeSolrValue(facilityIds[0])}`);
-  if (facilityIds.length > 1) filters.push(`facilityId: (${facilityIds.map(escapeSolrValue).join(' OR ')})`);
+  const facilityFilter = buildShipGroupFacilityFilter(facilityIds);
+  if (facilityFilter) filters.push(facilityFilter);
 
   const dateFilter = buildOrderDateSolrFilter(params.dateFrom, params.dateThru);
   if (dateFilter) filters.push(dateFilter);
@@ -132,18 +144,36 @@ function normalizeOrderSolrResponse(data: any): OrderSearchResult {
   if (groupedOrders?.groups?.length) {
     return {
       orders: groupedOrders.groups
-        .map((group: any) => group?.doclist?.docs?.[0])
-        .filter(Boolean)
-        .map(normalizeOrderDoc),
+        .map(normalizeGroupedOrder)
+        .filter(Boolean),
       total: Number(groupedOrders.ngroups ?? groupedOrders.matches ?? groupedOrders.groups.length)
     };
   }
 
   const docs = allDocs(data);
   return {
-    orders: docs.map(normalizeOrderDoc),
+    orders: docs.map((doc: any) => normalizeOrderWithParkingUnits([doc])),
     total: Number(data?.response?.numFound ?? docs.length)
   };
+}
+
+function normalizeGroupedOrder(group: any) {
+  const docs = allDocs(group?.doclist);
+  return normalizeOrderWithParkingUnits(docs);
+}
+
+function normalizeOrderWithParkingUnits(docs: any[]) {
+  const primaryDoc = docs[0];
+  if (!primaryDoc) return undefined;
+
+  return {
+    ...normalizeOrderDoc(primaryDoc),
+    parkingUnitCount: sumParkingUnits(docs)
+  };
+}
+
+function sumParkingUnits(docs: any[]) {
+  return docs.reduce((total, doc) => total + toNumberValue(doc.quantity), 0);
 }
 
 function buildOrderSearchQuery(searchTerm: string) {
@@ -165,6 +195,13 @@ function buildOrderDateSolrFilter(dateFrom?: string, dateThru?: string) {
   const thruDate = dateThru ? `${dateThru.split('T')[0]}T23:59:59Z` : '*';
 
   return `orderDate: [${fromDate} TO ${thruDate}]`;
+}
+
+function buildShipGroupFacilityFilter(facilityIds: string[]) {
+  if (facilityIds.length === 1) return `facilityId:${escapeSolrValue(facilityIds[0])}`;
+  if (facilityIds.length > 1) return `facilityId:(${facilityIds.map(escapeSolrValue).join(' OR ')})`;
+
+  return '';
 }
 
 function selectedStatuses(status?: string | string[]) {

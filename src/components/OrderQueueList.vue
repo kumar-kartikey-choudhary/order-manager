@@ -15,13 +15,14 @@
         :placeholder="translate(searchPlaceholder)"
         @clear="clearFilters"
       >
+        <slot name="filters" />
         <ion-item :id="statusTriggerId" button lines="none">
           <ion-label>
             <p>Status</p>
             <h3>{{ statusFilterLabel }}</h3>
           </ion-label>
         </ion-item>
-        <ion-popover :trigger="statusTriggerId" trigger-action="click">
+        <ion-popover :trigger="statusTriggerId" trigger-action="click" :show-backdrop="false">
           <ion-content>
             <ion-list>
               <ion-item lines="none">
@@ -49,13 +50,25 @@
         </ion-popover>
         <ion-input v-model="searchFilters.dateFrom" label="Order date from" label-placement="stacked" type="date" />
         <ion-input v-model="searchFilters.dateThru" label="Order date thru" label-placement="stacked" type="date" />
-        <ion-select v-model="searchFilters.channel" label="Channel" label-placement="stacked" interface="popover">
+        <ion-select
+          v-model="searchFilters.channel"
+          label="Channel"
+          label-placement="stacked"
+          interface="popover"
+          :interface-options="{ showBackdrop: false }"
+        >
           <ion-select-option value="All">All channels</ion-select-option>
           <ion-select-option v-for="option in salesChannels" :key="option.enumId" :value="option.enumId">
             {{ option.description || option.enumName || option.enumId }}
           </ion-select-option>
         </ion-select>
-        <ion-select v-model="searchSort" label="Sort by order date" label-placement="stacked" interface="popover">
+        <ion-select
+          v-model="searchSort"
+          label="Sort by order date"
+          label-placement="stacked"
+          interface="popover"
+          :interface-options="{ showBackdrop: false }"
+        >
           <ion-select-option value="orderDate desc">{{ translate('Newest first') }}</ion-select-option>
           <ion-select-option value="orderDate asc">{{ translate('Oldest first') }}</ion-select-option>
         </ion-select>
@@ -102,6 +115,7 @@
             <h2>{{ order.externalId || order.id }}</h2>
             <p>{{ order.id }} · {{ order.customerName || order.customerId || translate('Unknown customer') }}</p>
             <p>{{ createdDateLabel(order.orderDate) }} · {{ translate('Ship') }} {{ shipTimeLeftLabel(order.orderDate) }}</p>
+            <p v-if="hasParkingUnitCount(order)">{{ parkingUnitCountLabel(order) }}</p>
           </ion-label>
           <ion-badge :color="statusColor(order.status)" slot="end">
             {{ statusDescription(order.status) }}
@@ -239,6 +253,7 @@ const someCurrentPageSelected = computed(() => {
 onMounted(runSearch);
 
 watch(searchQuery, scheduleSearch);
+watch(() => props.facilityIds, () => runSearch(), { deep: true });
 watch(searchFilters, () => runSearch(), { deep: true });
 watch(searchSort, () => runSearch());
 watch(searchResults, () => {
@@ -416,6 +431,18 @@ function statusDescription(statusId: string) {
 function statusColor(statusId: string) {
   const label = statusDescription(statusId);
   return commonUtil.getColorByDesc(label) || commonUtil.getColorByDesc(statusId) || commonUtil.getColorByDesc('default');
+}
+
+function hasParkingUnitCount(order: Order) {
+  return Number(order.parkingUnitCount ?? 0) > 0;
+}
+
+function parkingUnitCountLabel(order: Order) {
+  const unitCount = Number(order.parkingUnitCount ?? 0);
+  const formattedUnitCount = Number.isInteger(unitCount) ? String(unitCount) : unitCount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const unitLabel = unitCount === 1 ? translate('unit') : translate('units');
+
+  return `${formattedUnitCount} ${unitLabel} ${translate('in parking')}`;
 }
 
 function createdDateLabel(value: string) {

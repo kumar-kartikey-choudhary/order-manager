@@ -40,6 +40,8 @@
   "Are you sure you want to cancel the {count} selected item(s)? This action cannot be undone.": "Are you sure you want to cancel the {count} selected item(s)? This action cannot be undone.",
   "Are you sure you want to cancel this item? This action cannot be undone.": "Are you sure you want to cancel this item? This action cannot be undone.",
   "Are you sure you want to cancel this order? This action cannot be undone.": "Are you sure you want to cancel this order? This action cannot be undone.",
+  "Are you sure you want to cancel {count} orders? This action cannot be undone.": "¿Seguro que quieres cancelar {count} pedidos? Esta acción no se puede deshacer.",
+  "{count} tasks resolved.": "{count} tareas resueltas.",
   "Are you sure you want to disable splitting for this order?": "Are you sure you want to disable splitting for this order?",
   "Are you sure you want to mark this task as resolved?": "Are you sure you want to mark this task as resolved?",
   "Assessment details": "Detalles de la evaluación",

@@ -77,10 +77,14 @@
           <DxpShopifyImg :src="productImageUrl(suggested.productId)" size="small" />
         </ion-thumbnail>
         <ion-label>
-          <p class="overline" v-if="suggested._isSubstitute">
-            <ion-text color="success">{{ translate('Approved swap') }}</ion-text>
+          <p
+            class="overline"
+            :class="{ 'swap-suggested-overline-hidden': !suggestedItemOverlineLabel(suggested) }"
+            :aria-hidden="!suggestedItemOverlineLabel(suggested)"
+          >
+            <ion-text v-if="suggested._isSubstitute" color="success">{{ suggestedItemOverlineLabel(suggested) }}</ion-text>
+            <span v-else>{{ suggestedItemOverlineLabel(suggested) || ' ' }}</span>
           </p>
-          <p class="overline" v-else-if="suggested._noReplacement">{{ translate('No replacement in stock') }}</p>
           {{ productPrimary(suggested) }}
           <p>{{ productSecondary(suggested) }}</p>
         </ion-label>
@@ -362,6 +366,13 @@ function getSuggestedItems(task: any): { list: any[]; newTotal: number; suggeste
   return { list, newTotal, suggestedRefund };
 }
 
+function suggestedItemOverlineLabel(suggested: any): string {
+  if (suggested._isSubstitute) return translate('Approved swap');
+  if (suggested._noReplacement) return translate('No replacement in stock');
+
+  return '';
+}
+
 function money(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 }
@@ -473,3 +484,9 @@ async function parkOrder(task: any) {
 
 defineExpose({ task: props.task });
 </script>
+
+<style scoped>
+.swap-suggested-overline-hidden {
+  visibility: hidden;
+}
+</style>

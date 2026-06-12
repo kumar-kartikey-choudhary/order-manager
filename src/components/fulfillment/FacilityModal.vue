@@ -31,11 +31,12 @@
         </div>
         <div v-else>
           <ion-item v-for="facility in filteredFacilities" :key="facility.facilityId">
-            <ion-radio slot="start" :value="facility.facilityId" />
-            <ion-label>
-              {{ facility.facilityName }}
-              <p>{{ facility.facilityId }}</p>
-            </ion-label>
+            <ion-radio :value="facility.facilityId">
+              <ion-label>
+                {{ facility.facilityName }}
+                <p>{{ facility.facilityId }}</p>
+              </ion-label>
+            </ion-radio>
           </ion-item>
         </div>
       </ion-list>
@@ -50,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonRadio, IonRadioGroup, IonSearchbar, IonSpinner, IonTitle, IonToolbar, modalController } from '@ionic/vue';
+import { IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonList, IonRadio, IonRadioGroup, IonSearchbar, IonSpinner, IonTitle, IonToolbar, modalController } from '@ionic/vue';
 import { closeOutline, saveOutline } from 'ionicons/icons';
 import { onMounted, ref } from 'vue';
 import { api, logger, translate } from '@common';

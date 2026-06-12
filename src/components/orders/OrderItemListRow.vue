@@ -1,14 +1,13 @@
 <template>
   <div class="list-item order-item-list-row">
-    <ion-item class="order-item-list-key" lines="none">
+    <div class="order-item-list-key">
       <ion-checkbox
         v-if="selectable"
-        slot="start"
         :checked="selected"
         @click.stop
         @ionChange="emit('update:selected', $event.detail.checked)"
       />
-      <ion-thumbnail v-if="imageUrl" slot="start" v-image-preview="previewProduct" :key="imageUrl">
+      <ion-thumbnail v-if="imageUrl" v-image-preview="previewProduct" :key="imageUrl">
         <DxpShopifyImg :src="imageUrl" :key="imageUrl" size="small" />
       </ion-thumbnail>
       <ion-label>
@@ -18,14 +17,16 @@
         </div>
         <p v-if="secondary">{{ secondary }}</p>
       </ion-label>
-    </ion-item>
+    </div>
 
     <ion-label class="tablet order-item-quantity">
-      {{ quantity }}
-      <p>{{ quantityLabel }}</p>
+      <template v-if="showQuantity">
+        {{ quantity }}
+        <p>{{ quantityLabel }}</p>
+      </template>
     </ion-label>
 
-    <div v-if="facilityLabel || attributesLabel" class="tablet order-item-details">
+    <div class="tablet order-item-details">
       <ion-chip
         v-if="facilityLabel"
         outline
@@ -62,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { IonBadge, IonCheckbox, IonChip, IonIcon, IonItem, IonLabel, IonThumbnail } from '@ionic/vue';
+import { IonBadge, IonCheckbox, IonChip, IonIcon, IonLabel, IonThumbnail } from '@ionic/vue';
 import { businessOutline, listOutline } from 'ionicons/icons';
 import { DxpShopifyImg } from '@common';
 
@@ -76,6 +77,7 @@ withDefaults(defineProps<{
   selected?: boolean;
   quantity: string | number;
   quantityLabel: string;
+  showQuantity?: boolean;
   facilityLabel?: string;
   facilityDisabled?: boolean;
   attributesLabel?: string;
@@ -92,6 +94,7 @@ withDefaults(defineProps<{
   previewProduct: undefined,
   selectable: true,
   selected: false,
+  showQuantity: true,
   facilityLabel: '',
   facilityDisabled: false,
   attributesLabel: '',
@@ -129,6 +132,10 @@ const emit = defineEmits<{
 }
 
 .order-item-list-key {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-sm);
+  min-width: 0;
   width: 100%;
 }
 

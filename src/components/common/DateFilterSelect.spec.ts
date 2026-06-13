@@ -18,6 +18,7 @@ describe('date filter select', () => {
     expect(source).toContain('flex: 0 0 11rem;');
     expect(source).not.toContain('<ion-modal');
     expect(source).not.toContain('type="date"');
+    expect(source).not.toContain('<h3>');
     expect(source).not.toContain('ion-grid');
     expect(source).not.toContain('ion-row');
     expect(source).not.toContain('ion-col');

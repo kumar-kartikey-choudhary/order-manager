@@ -22,7 +22,10 @@ describe('OrderQueueList', () => {
   });
 
   it('offers optional bulk brokering for selected virtual ship groups', () => {
-    expect(source).toContain('v-if="enableBrokerAction"');
+    const unfillableSource = readFileSync(resolve(process.cwd(), 'src/views/UnfillableOrders.vue'), 'utf8');
+
+    expect(unfillableSource).toContain(':global-actions="[\'brokerSelected\']"');
+    expect(source).toContain("hasGlobalAction('brokerSelected')");
     expect(source).toContain("{{ translate('Broker selected') }}");
     expect(source).toContain('component: RoutingGroupModal');
     expect(source).toContain('brokerableShipGroupsForOrders(orderIds)');
@@ -45,5 +48,6 @@ describe('OrderQueueList', () => {
     expect(source).not.toContain('All statuses');
     expect(source).not.toContain('Sort by order date');
     expect(source).not.toContain('type="date"');
+    expect(source).not.toContain('<h3>');
   });
 });

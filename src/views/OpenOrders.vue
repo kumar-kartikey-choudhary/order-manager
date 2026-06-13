@@ -48,7 +48,7 @@
         >
           <ion-label>
             <p>{{ translate('Order date from') }}</p>
-            <h3>{{ dateFilterLabel(filters.dateFrom) }}</h3>
+            {{ dateFilterLabel(filters.dateFrom) }}
           </ion-label>
         </ion-item>
         <ion-item
@@ -60,7 +60,7 @@
         >
           <ion-label>
             <p>{{ translate('Order date thru') }}</p>
-            <h3>{{ dateFilterLabel(filters.dateThru) }}</h3>
+            {{ dateFilterLabel(filters.dateThru) }}
           </ion-label>
         </ion-item>
       </SearchFilterCard>

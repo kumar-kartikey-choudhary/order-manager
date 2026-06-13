@@ -7,6 +7,6 @@ describe('UnfillableOrders', () => {
 
   it('enables the selected-order brokering action for the unfillable queue', () => {
     expect(source).toContain(':facility-ids="[\'UNFILLABLE_PARKING\']"');
-    expect(source).toContain(':enable-broker-action="true"');
+    expect(source).toContain(':global-actions="[\'brokerSelected\']"');
   });
 });

@@ -3,7 +3,7 @@
     <ion-item :id="triggerId" button detail="false" lines="none">
       <ion-label>
         <p>{{ label }}</p>
-        <h3>{{ selectedDateLabel }}</h3>
+        {{ selectedDateLabel }}
       </ion-label>
     </ion-item>
 

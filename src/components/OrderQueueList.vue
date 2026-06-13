@@ -131,7 +131,7 @@
       <ion-toolbar>
         <ion-title size="small">{{ selectedOrderIds.length }} {{ translate('selected') }}</ion-title>
         <ion-buttons slot="end" class="bulk-action-buttons">
-          <ion-button v-if="enableBrokerAction" :disabled="!selectedOrderIds.length" @click="openBrokerSelectedModal">
+          <ion-button v-if="hasGlobalAction('brokerSelected')" :disabled="!selectedOrderIds.length" @click="openBrokerSelectedModal">
             {{ translate('Broker selected') }}
           </ion-button>
           <ion-button :disabled="!selectedOrderIds.length" @click="confirmCancelOrders">{{ translate('Cancel open items') }}</ion-button>
@@ -186,6 +186,8 @@ import DateFilterSelect from '@/components/common/DateFilterSelect.vue';
 import SearchFilterCard from '@/components/common/SearchFilterCard.vue';
 import { showToast } from '@/utils';
 
+type QueueGlobalAction = 'brokerSelected';
+
 const props = defineProps<{
   // Facility IDs that scope this queue. This preset is always applied and is not user-removable.
   facilityIds: string[];
@@ -193,7 +195,7 @@ const props = defineProps<{
   searchPlaceholder: string;
   emptyTitle: string;
   emptyMessage: string;
-  enableBrokerAction?: boolean;
+  globalActions?: QueueGlobalAction[];
 }>();
 
 const orderDetailStore = useOrderDetailStore();
@@ -232,6 +234,10 @@ const allCurrentPageSelected = computed(() => {
 const someCurrentPageSelected = computed(() => {
   return currentPageOrderIds.value.some((orderId) => selectedOrderIds.value.includes(orderId));
 });
+
+function hasGlobalAction(action: QueueGlobalAction): boolean {
+  return props.globalActions?.includes(action) ?? false;
+}
 
 onMounted(runSearch);
 

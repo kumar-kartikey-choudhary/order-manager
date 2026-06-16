@@ -592,5 +592,14 @@
   "Try searching using a keyword instead": "Try searching using a keyword instead",
   "Unfillable": "Unfillable",
   "not found": "not found",
-  "start scanning": "start scanning"
+  "start scanning": "start scanning",
+  "Back to Login": "Back to Login",
+  "Detected": "Detected",
+  "Local OMS": "Local OMS",
+  "Next": "Next",
+  "Please contact the administrator.": "Please contact the administrator.",
+  "Please fill in the OMS": "Please fill in the OMS",
+  "Please fill in the user details": "Please fill in the user details",
+  "Processing": "Processing",
+  "Ready": "Ready"
 }

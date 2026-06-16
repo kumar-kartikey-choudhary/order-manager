@@ -35,6 +35,7 @@
           <ion-card-header>
             <ion-card-subtitle>{{ translate("OMS instance") }}</ion-card-subtitle>
             <ion-card-title>{{ omsInstance }}</ion-card-title>
+            <ion-badge v-if="isOmsOffline" color="danger">{{ translate("Offline") }}</ion-badge>
           </ion-card-header>
           <ion-card-content>
             {{ translate("This is the name of the OMS you are connected to right now. Make sure that you are connected to the right instance before proceeding.") }}
@@ -66,6 +67,20 @@
       <DxpAppVersionInfo />
       <section>
         <DxpProductIdentifier />
+
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>{{ translate("Barcode Identifier") }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            {{ translate("Specify which product identifier should be used to scan barcodes to look up products.") }}
+          </ion-card-content>
+          <ion-item lines="none">
+            <ion-select :label="translate('Barcode Identifier')" interface="popover" :placeholder="translate('Select')" :value="barcodeIdentificationPref" @ionChange="setBarcodeIdentificationPref($event.detail.value)">
+              <ion-select-option v-for="identification in barcodeIdentificationOptions" :key="identification.goodIdentificationTypeId" :value="identification.goodIdentificationTypeId">{{ identification.description ? identification.description : identification.goodIdentificationTypeId }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-card>
 
         <ion-card>
           <ion-card-header>
@@ -111,7 +126,7 @@
           <ion-toolbar>
             <ion-buttons slot="start">
               <ion-button @click="closeModal">
-                <ion-icon :icon="closeOutline" />
+                <ion-icon slot="icon-only" :icon="closeOutline" />
               </ion-button>
             </ion-buttons>
             <ion-title>{{ translate("Select time zone") }}</ion-title>
@@ -169,21 +184,23 @@
 </template>
 
 <script setup lang="ts">
-import { IonAvatar, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonModal, IonPage, IonRadio, IonRadioGroup, IonSearchbar, IonSelect, IonSelectOption, IonSpinner, IonTitle, IonToolbar } from '@ionic/vue';
+import { IonAvatar, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonModal, IonPage, IonRadio, IonRadioGroup, IonSearchbar, IonSelect, IonSelectOption, IonSpinner, IonTitle, IonToolbar } from '@ionic/vue';
 import { closeOutline, openOutline, saveOutline } from 'ionicons/icons';
 import { DateTime } from 'luxon';
 import { computed, onBeforeMount, ref } from 'vue';
-import { commonUtil, cookieHelper, i18n, translate } from '@common';
+import { api, commonUtil, cookieHelper, i18n, translate } from '@common';
 import { useAuth } from '@common/composables/useAuth';
 import { useUserStore } from '@/store/user';
 import { useProductStore } from '@/store/productStore'
-import DxpProductIdentifier from "@/components/DxpProductIdentifier.vue";
-import DxpAppVersionInfo from "@/components/DxpAppVersionInfo.vue";
+import DxpProductIdentifier from "@/components/settings/DxpProductIdentifier.vue";
+import DxpAppVersionInfo from "@/components/settings/DxpAppVersionInfo.vue";
 
 const userStore = useUserStore();
 const userProfile = computed(() => userStore.getUserProfile);
 const currentProductStore = computed(() => useProductStore().getCurrentProductStore);
 const productStores = computed(() => useProductStore().getProductStores || []);
+const barcodeIdentificationPref = computed(() => useProductStore().getBarcodeIdentifierPref);
+const barcodeIdentificationOptions = computed(() => useProductStore().getBarcodeIdentifierOptions);
 const timeZones = computed(() => userStore.getAvailableTimeZones);
 const currentTimeZone = computed(() => userStore.getUserTimeZone || userProfile.value?.userTimeZone || Intl.DateTimeFormat().resolvedOptions().timeZone);
 const omsInstance = computed(() => cookieHelper().get('oms') || userStore.oms);
@@ -221,6 +238,7 @@ const props = defineProps({
 });
 
 const isLoading = ref(true);
+const isOmsOffline = ref(false);
 const timeZoneModal = ref();
 const queryString = ref('');
 const filteredTimeZones = ref<any[]>([]);
@@ -232,6 +250,7 @@ const browserTimeZone = ref({
 
 onBeforeMount(async () => {
   isLoading.value = true;
+  checkOmsConnection();
   await userStore.fetchAvailableTimeZones();
   timeZoneId.value = currentTimeZone.value;
 
@@ -243,11 +262,39 @@ onBeforeMount(async () => {
   isLoading.value = false;
 });
 
+async function checkOmsConnection() {
+  if (!omsInstance.value) {
+    isOmsOffline.value = true;
+    return;
+  }
+
+  try {
+    await api({
+      url: commonUtil.isMoqui() ? "admin/user/permissions" : "getPermissions",
+      method: "GET",
+      baseURL: commonUtil.getOmsURL(),
+      params: { viewIndex: 0, viewSize: 1 },
+      timeout: 3000,
+    });
+    isOmsOffline.value = false;
+  } catch (error: any) {
+    isOmsOffline.value = !error?.response;
+  }
+}
+
 function setCurrentProductStore(event: CustomEvent) {
   if (currentProductStore.value.productStoreId !== event.detail.value) {
     const selectedProductStore = productStores.value.find((store: any) => store.productStoreId == event.detail.value)
     useProductStore().setProductStorePreference(selectedProductStore)
   }
+}
+
+async function setBarcodeIdentificationPref(value: string) {
+  await useProductStore().setProductStoreSetting(
+    currentProductStore.value.productStoreId,
+    "BARCODE_IDEN_PREF",
+    value
+  )
 }
 
 async function saveUserTimeZone() {

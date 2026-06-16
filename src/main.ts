@@ -26,6 +26,7 @@ import '@ionic/vue/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import './theme/work-card.css';
 import "@common/css/settings.css"
 import "@common/css/theme.css"
 
@@ -48,7 +49,6 @@ const app = createApp(App)
   })
   .use(i18n)
   .use(pinia)
-  .use(router)
 
 initialiseConfig({
   postLogin: useUserStore().postLogin,
@@ -60,11 +60,13 @@ initialiseConfig({
   router: router
 })
 
-if (import.meta.env.DEV) {
-  import('./dev/autoLogin').then(({ tryDevAutoLogin }) => tryDevAutoLogin());
-}
+app.use(router)
 
-router.isReady().then(() => {
+router.isReady().then(async () => {
   app.directive('image-preview', imagePreview)
   app.mount('#app');
+
+  if (import.meta.env.DEV) {
+    import('./dev/autoLogin').then(({ tryDevAutoLogin }) => tryDevAutoLogin());
+  }
 });

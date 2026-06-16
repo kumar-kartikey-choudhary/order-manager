@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { api, commonUtil, useEmbeddedAppStore, logger, translate, useSolrSearch } from '@common'
 import { useUserStore } from '@/store/user'
 import { useSeedStore } from "@/store/seed";
-const defaultProductStoreSettings = JSON.parse(import.meta.env.VITE_DEFAULT_PRODUCT_STORE_SETTINGS as string || '{}')
+const defaultProductStoreSettings = JSON.parse(import.meta.env.VITE_DEFAULT_PRODUCT_STORE_SETTINGS as string || '{"PRDT_IDEN_PREF":{"stateKey":"productIdentifier.productIdentificationPref","value":{"primaryId":"SKU","secondaryId":"productId"}}}')
 
 export const useProductStore = defineStore('productStore', {
   state: () => ({
@@ -17,6 +17,10 @@ export const useProductStore = defineStore('productStore', {
         sampleProducts: [],
         currentSampleProduct: null
       },
+      barcodeIdentifier: {
+        barcodeIdentifierPref: "",
+        barcodeIdentifierOptions: [] as any[],
+      },
     } as any,
     productStores: [] as any[],
   }),
@@ -26,7 +30,9 @@ export const useProductStore = defineStore('productStore', {
     getProductStores: (state) => state.productStores,
     getSettings: (state) => state.settings,
     getProductIdentificationPref: (state) => state.settings.productIdentifier.productIdentificationPref,
+    getBarcodeIdentifierPref: (state) => state.settings.barcodeIdentifier.barcodeIdentifierPref,
     getProductIdentificationOptions: (state) => state.settings.productIdentifier.productIdentificationOptions,
+    getBarcodeIdentifierOptions: (state) => state.settings.barcodeIdentifier.barcodeIdentifierOptions,
     getCurrentSampleProduct: (state) => state.settings.productIdentifier.currentSampleProduct,
   },
 

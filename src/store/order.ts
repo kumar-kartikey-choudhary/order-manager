@@ -37,7 +37,7 @@ async function fetchWorkflowPage(
       orderId: toStringValue(doc.orderId),
       orderName: toStringValue(doc.orderName),
       externalId: toStringValue(doc.externalId),
-      statusId: 'ORDER_APPROVED',
+      statusId: toStringValue(doc.orderStatusId) || toStringValue(doc.statusId) || 'ORDER_APPROVED',
       orderDate: toStringValue(doc.orderDate),
       productStoreId: toStringValue(doc.productStoreId),
       productStoreName: (() => { const s = seedStore.productStores.byId[toStringValue(doc.productStoreId)]; return s?.storeName || s?.companyName || toStringValue(doc.productStoreId); })(),
@@ -50,6 +50,7 @@ async function fetchWorkflowPage(
       shipGroupSeqId: toStringValue(doc.shipGroupSeqId),
       shippingMethodTypeId: toStringValue(doc.shipmentMethodTypeId),
       shipmentMethodDesc: (() => { const m = seedStore.shipmentMethodTypes.byId[toStringValue(doc.shipmentMethodTypeId)]; return m?.description || toStringValue(doc.shipmentMethodTypeId); })(),
+      carrierPartyId: toStringValue(doc.carrierPartyId),
       priority: (() => {
         const p = Number(doc.priority);
         if (isNaN(p)) return 'NORMAL' as const;
@@ -63,7 +64,13 @@ async function fetchWorkflowPage(
       picklistBinId: null,
       pickedDate: null,
       receivedAtFacility: false,
-      shipBeforeDate: null,
+      shipBeforeDate: toStringValue(doc.shipBeforeDate) || null,
+      estimatedDeliveryDate: toStringValue(doc.estimatedDeliveryDate) || toStringValue(doc.promisedDatetime) || null,
+      shippingAddress1: toStringValue(doc.address1) || toStringValue(doc.shippingAddress1),
+      shippingCity: toStringValue(doc.city) || toStringValue(doc.shippingCity),
+      shippingStateProvinceGeoId: toStringValue(doc.stateProvinceGeoId) || toStringValue(doc.shippingStateProvinceGeoId),
+      shippingPostalCode: toStringValue(doc.postalCode) || toStringValue(doc.shippingPostalCode),
+      shippingCountryGeoId: toStringValue(doc.countryGeoId) || toStringValue(doc.shippingCountryGeoId),
       bucket
     } satisfies WorkflowOrder;
   });
@@ -222,6 +229,9 @@ export const useOrderStore = defineStore('orders', {
     async fetchWorkflowOrders(bucket: 'open' | 'inflight' | 'packed', filters: WorkflowFilters) {
       if (this.workflowOrdersLoading[bucket]) return;
       this.workflowOrdersLoading[bucket] = true;
+      this.workflowOrders[bucket] = [];
+      this.workflowOrdersTotal[bucket] = 0;
+      this.workflowOrdersPageIndex[bucket] = 0;
       try {
         const { orders, total } = await fetchWorkflowPage(bucket, filters, 0);
         this.workflowOrders[bucket] = orders;
@@ -234,5 +244,12 @@ export const useOrderStore = defineStore('orders', {
       }
     },
   },
-  persist: true,
+  persist: {
+    omit: [
+      'workflowOrders',
+      'workflowOrdersLoading',
+      'workflowOrdersTotal',
+      'workflowOrdersPageIndex'
+    ]
+  },
 });

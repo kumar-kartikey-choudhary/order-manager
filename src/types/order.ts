@@ -1,39 +1,5 @@
 export type OrderStatus = string;
 
-export type OrderActionGroup =
-  | 'order-status'
-  | 'order-info'
-  | 'items'
-  | 'ship-groups'
-  | 'payments'
-  | 'communications'
-  | 'notes'
-  | 'returns'
-  | 'metadata'
-  | 'adjustments'
-  | 'downloads'
-  | 'fulfillment'
-  | 'appeasement';
-
-export type OrderActionImplementationStatus = 'callable' | 'backend-gap';
-
-export interface OrderActionDefinition {
-  id: string;
-  label: string;
-  group: OrderActionGroup;
-  legacySource: string;
-  permission: string;
-  endpoint?: string;
-  endpointStatus: 'documented-endpoint' | 'backend-gap' | 'documented-backend-gap';
-  implementationStatus: OrderActionImplementationStatus;
-  hiddenForStatuses?: string[];
-}
-
-export interface OrderActionContext {
-  permissions: string[];
-  orderStatus?: string;
-}
-
 export interface Address {
   label: string;
   lines: string[];
@@ -327,6 +293,7 @@ export interface ReturnStatusChange {
 
 export interface Customer {
   id: string;
+  partyId?: string;
   name: string;
   personalTitle?: string;
   partyTypeId?: string;
@@ -374,6 +341,18 @@ export interface Order {
   fulfillmentStatus: string;
   deliveryMethod: string;
   priority: string;
+  parkingUnitCount?: number;
+  shippingAddress1?: string;
+  shippingCity?: string;
+  shippingStateProvinceGeoId?: string;
+  shippingPostalCode?: string;
+  shippingCountryGeoId?: string;
+  estimatedDeliveryDate?: string;
+  shipBeforeDate?: string;
+  shipByDate?: string;
+  queueReason?: string;
+  rejectionReason?: string;
+  ruleName?: string;
   items: OrderItem[];
   shipmentIds: string[];
   returnIds: string[];

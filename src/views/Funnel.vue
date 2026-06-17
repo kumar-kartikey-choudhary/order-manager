@@ -383,7 +383,7 @@
               <!-- Progress Bar -->
               <div class="queue-progress-bar-container">
                 <div 
-                  v-for="segment in fulfillmentSyncData.queueSegments" 
+                  v-for="segment in queueSegments" 
                   :key="segment.id" 
                   class="queue-segment" 
                   :class="segment.color?.startsWith('#') ? '' : segment.color" 
@@ -413,7 +413,7 @@
               <!-- Segments Legend Grid -->
               <div class="legend-grid">
                 <div 
-                  v-for="(segment, visibleIndex) in fulfillmentSyncData.queueSegments.filter(s => s.orderCount > 0)" 
+                  v-for="(segment, visibleIndex) in queueSegments.filter(s => s.orderCount > 0)" 
                   :key="segment.id"
                   class="legend-card"
                   :class="{ 'active-card': hoveredSegmentId === segment.id }"
@@ -516,6 +516,155 @@ const facilityPartialFulfillments = computed(() => store.getFacilityPartialFulfi
 const unfillableTrend = computed(() => store.unfillableTrend);
 
 const fulfillmentSyncData = computed(() => store.getFulfillmentSyncData);
+
+const queueSegments = computed(() => {
+  const syncData = fulfillmentSyncData.value;
+  if (!syncData || !syncData.settings || !syncData.rawOrderCountRecords) return [];
+
+  const batchSize = syncData.settings.batchSize || 200;
+  const cronExpression = syncData.settings.cronExpression || '0 */5 * ? * *';
+  const sortRules = syncData.settings.sortRules || [];
+  const records = syncData.rawOrderCountRecords || [];
+
+  // 1. Calculate interval minutes from cron expression
+  let cronIntervalMinutes = 5;
+  try {
+    const parsedCron = commonUtil.parseCronExpression(cronExpression);
+    const next1 = parsedCron.next().getTime();
+    const next2 = parsedCron.next().getTime();
+    cronIntervalMinutes = Math.max(1, Math.round((next2 - next1) / (60 * 1000)));
+  } catch (error) {
+    console.error('Failed to parse cron expression for interval', error);
+  }
+
+  const formatEstimatedTime = (mins: number) => {
+    if (mins <= 0) return '0 MIN';
+    if (mins < 60) return `+${mins} MIN`;
+    const hrs = Math.round(mins / 60);
+    return `+${hrs} HR`;
+  };
+
+  // 2. Queue segments based on the top sorting parameter
+  const topSortField = sortRules[0]?.id || 'deliveryDays';
+  let segments: any[] = [];
+
+  const seedStore = useSeedStore() as any;
+
+  if (topSortField === 'deliveryDays' || topSortField === 'shipmentMethodTypeId') {
+    // Dynamic combinations grouping
+    const segmentMap = new Map<string, { deliveryDays: number; shipmentMethodTypeId: string; count: number }>();
+    records.forEach((rec: any) => {
+      const days = Number(rec.deliveryDays || 0);
+      const methodId = String(rec.shipmentMethodTypeId || '').trim();
+      const key = `${days}::${methodId}`;
+      const count = Number(rec.orderCount || 0);
+      
+      const existing = segmentMap.get(key) || { deliveryDays: days, shipmentMethodTypeId: methodId, count: 0 };
+      existing.count += count;
+      segmentMap.set(key, existing);
+    });
+
+    const sortedCombinations = Array.from(segmentMap.values()).sort((a, b) => 
+      a.deliveryDays !== b.deliveryDays ? a.deliveryDays - b.deliveryDays : a.shipmentMethodTypeId.localeCompare(b.shipmentMethodTypeId)
+    );
+
+    const totalCount = sortedCombinations.reduce((sum, item) => sum + item.count, 0) || 1;
+    const PALETTE = ['#3880ff', '#10dc60', '#ffd534', '#ff4961', '#7044ff', '#0cd1e8', '#ff9800', '#e040fb', '#00e676', '#ff1744', '#2979ff'];
+
+    let runningMinutes = 0;
+    segments = sortedCombinations.map((item, index) => {
+      const shipmentMethod = seedStore.shipmentMethodTypes?.byId?.[item.shipmentMethodTypeId];
+      const label = `${item.deliveryDays}d - ${shipmentMethod?.description || item.shipmentMethodTypeId || 'None'}`;
+      const segmentMinutes = Math.ceil(item.count / batchSize) * cronIntervalMinutes;
+      runningMinutes += segmentMinutes;
+      return {
+        id: `${item.deliveryDays}_${item.shipmentMethodTypeId || 'none'}`.toLowerCase(),
+        label,
+        orderCount: item.count,
+        estimatedTime: formatEstimatedTime(runningMinutes),
+        color: PALETTE[index % PALETTE.length],
+        percentWidth: (item.count / totalCount) * 100
+      };
+    });
+  } else {
+    // Unified static groupings config
+    const SEGMENT_CONFIGS: Record<string, { id: string; label: string; color: string }[]> = {
+      priority: [
+        { id: 'high', label: 'High Priority', color: 'same-day' },
+        { id: 'normal', label: 'Normal Priority', color: 'next-day' },
+        { id: 'low', label: 'Low Priority', color: 'standard' }
+      ],
+      isRushOrder: [
+        { id: 'rush', label: 'Rush Orders', color: 'same-day' },
+        { id: 'non_rush', label: 'Standard Orders', color: 'standard' }
+      ],
+      orderDate: [
+        { id: 'oldest', label: 'Overdue (>24h)', color: 'same-day' },
+        { id: 'recent', label: 'Today', color: 'next-day' }
+      ],
+      default: [
+        { id: 'standard', label: 'Standard', color: 'standard' },
+        { id: 'next_day', label: 'Next day', color: 'next-day' },
+        { id: 'same_day', label: 'Same day', color: 'same-day' }
+      ]
+    };
+
+    const configKey = ['priority', 'isRushOrder', 'orderDate'].includes(topSortField) ? topSortField : 'default';
+    const config = SEGMENT_CONFIGS[configKey];
+    const counts: Record<string, number> = {};
+    config.forEach(c => counts[c.id] = 0);
+
+    records.forEach((rec: any) => {
+      let key = 'normal';
+      const val = rec[topSortField];
+      if (topSortField === 'priority') {
+        const num = Number(val);
+        if (val === null || val === undefined || val === '') key = 'normal';
+        else if (!isNaN(num)) {
+          if (num >= 1 && num <= 3) key = 'high';
+          else if (num === 0 || (num >= 7 && num <= 9)) key = 'low';
+          else key = 'normal';
+        } else {
+          const str = String(val).toUpperCase();
+          if (str === '100' || str === 'HIGH') key = 'high';
+          else if (str === '0' || str === 'LOW') key = 'low';
+          else key = 'normal';
+        }
+      } else if (topSortField === 'isRushOrder') {
+        key = String(val || '').toUpperCase() === 'Y' ? 'rush' : 'non_rush';
+      } else if (topSortField === 'orderDate') {
+        if (!val) key = 'recent';
+        else {
+          const orderTime = typeof val === 'number' ? val : Date.parse(val);
+          const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+          key = (!isNaN(orderTime) && orderTime < cutoff) ? 'oldest' : 'recent';
+        }
+      } else {
+        const methodId = rec.shipmentMethodTypeId || rec.deliveryDays;
+        key = methodId === 'STANDARD' ? 'standard' : (methodId === 'EXPRESS' ? 'next_day' : 'same_day');
+      }
+      counts[key] = (counts[key] || 0) + Number(rec.orderCount || 0);
+    });
+
+    const totalCount = Object.values(counts).reduce((sum, c) => sum + c, 0) || 1;
+    let runningMinutes = 0;
+    segments = config.map(c => {
+      const count = counts[c.id] || 0;
+      const mins = Math.ceil(count / batchSize) * cronIntervalMinutes;
+      runningMinutes += mins;
+      return {
+        id: c.id,
+        label: c.label,
+        orderCount: count,
+        estimatedTime: formatEstimatedTime(runningMinutes),
+        color: c.color,
+        percentWidth: (count / totalCount) * 100
+      };
+    });
+  }
+
+  return segments;
+});
 
 const selectedStoreId = ref('');
 const selectedFacilityId = ref('BROADWAY');

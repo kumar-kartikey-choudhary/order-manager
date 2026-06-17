@@ -298,7 +298,12 @@ const selectedDimension = ref('volume');
 
 const oldestOpenOrderDateStr = computed(() => {
   const timestamp = openOrders.value.oldestOpenOrderDate;
-  return timestamp ? 'Oldest: ' + commonUtil.getDateAndTime(timestamp) : 'No open orders';
+  if (!timestamp) return 'No open orders';
+  // Backend returns a SQL timestamp string like "2026-03-20 05:40:00.0" — convert to millis
+  const millis = typeof timestamp === 'number'
+    ? timestamp
+    : DateTime.fromSQL(String(timestamp).replace(/\.\d+$/, '')).toMillis();
+  return isNaN(millis) ? 'No open orders' : 'Oldest: ' + commonUtil.getDateAndTime(millis);
 });
 
 const totalUnfillable = computed(() => unfillableTrend.value.reduce((sum, val) => sum + val, 0));

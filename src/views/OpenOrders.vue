@@ -222,7 +222,7 @@ import {
 } from '@ionic/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { DateTime } from 'luxon';
-import { useRoute } from 'vue-router';
+import router from '@/router';
 import { useCustomerServiceStore, BULK_ACTIONS } from '@/store/customerService';
 import { useOrderStore } from '@/store/order';
 import { useSeedStore } from '@/store/seed';
@@ -236,7 +236,7 @@ const VIRTUAL_FACILITY_TYPE_ID = 'VIRTUAL_FACILITY';
 const store = useCustomerServiceStore();
 const orderStore = useOrderStore();
 const seedStore = useSeedStore();
-const route = useRoute();
+const route = router.currentRoute;
 const ionRouter = useIonRouter();
 const toastMessage = ref('');
 
@@ -302,14 +302,14 @@ function normalizeDateFilterValue(value: string | string[] | null | undefined) {
 }
 
 function applyRouteFilters() {
-  const facilityId = route.query.facilityId;
+  const facilityId = route.value.query.facilityId;
 
   if (typeof facilityId === 'string' && facilityId) {
     filters.value.facilityId = facilityId;
   }
 }
 
-watch(() => route.query.facilityId, applyRouteFilters, { immediate: true });
+watch(() => route.value.query.facilityId, applyRouteFilters, { immediate: true });
 
 function loadWorkflowOrders() {
   orderStore.fetchWorkflowOrders(bucket, filters.value);

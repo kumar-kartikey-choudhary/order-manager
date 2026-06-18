@@ -158,14 +158,14 @@
               <ion-progress-bar :value="maxMetricValue > 0 ? (item.value / maxMetricValue) : 0" color="primary" />
             </div>
           </ion-item>
-          <ion-item v-if="filteredFacilities.length === 0" lines="none">
+          <ion-item v-if="!filteredFacilities.length" lines="none">
             <ion-label>{{ translate("No facilities found") }}</ion-label>
           </ion-item>
         </ion-radio-group>
       </ion-list>
 
       <!-- Online Order Fulfillment Dashboard at selected Facility -->
-      <div class="fulfillment-dashboard-section ion-padding">
+      <div v-if="selectedFacilityId" class="fulfillment-dashboard-section ion-padding">
         <h1 class="section-title">{{ translate("Fill rate at") }} {{ selectedFacilityName }}</h1>
 
         <!-- Copied exactly from Dashboard.vue -->

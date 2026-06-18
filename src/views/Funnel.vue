@@ -119,7 +119,7 @@
       <ion-item lines="none" class="facility-header">
         <ion-icon slot="start" :icon="businessOutline" />
         <ion-label>
-          <h1>{{ selectedFacilityName }}</h1>
+          <h1>{{ translate("Facilities") }}</h1>
         </ion-label>
       </ion-item>
 

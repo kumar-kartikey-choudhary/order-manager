@@ -185,10 +185,9 @@ const toastMessage = ref('');
 function handleOrderRowClick(order: WorkflowOrder) {
   if (selectMode.value) {
     toggleOrderSelection(order.orderId);
-    return;
+  } else {
+    router.push(orderDetailLink(order));
   }
-
-  router.push(orderDetailLink(order));
 }
 
 const filters = computed({

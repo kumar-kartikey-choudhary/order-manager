@@ -346,6 +346,7 @@ const orderForm = ref({
     quantity: number;
     price: number;
     mainImageUrl: string;
+    isCustomLine?: boolean;
   }>,
   note: '',
   tags: ""
@@ -509,7 +510,8 @@ async function openCustomLineModal() {
         title: data.productName,
         quantity: data.quantity,
         price: data.price,
-        mainImageUrl: ""
+        mainImageUrl: "",
+        isCustomLine: true
       });
     }
   });
@@ -619,7 +621,7 @@ async function submitOrder() {
 
   for (let i = 0; i < form.lineItems.length; i++) {
     const item = form.lineItems[i];
-    if (!item.sku || !item.title) {
+    if (!item.title || (!item.isCustomLine && !item.sku)) {
       commonUtil.showToast(translate("Line item {index} has missing SKU or Title.", { index: i + 1 }));
       return;
     }

@@ -144,7 +144,7 @@
       <!-- Facilities List -->
       <ion-list class="facilities ion-padding-top">
         <ion-list-header>
-          <ion-label>{{ translate("Top 10 facilities by selected dimension or Search results") }}</ion-label>
+          <ion-label>{{ translate("Top 10 facilities by") }} {{ selectedDimension }} {{ searchQuery && translate("or") }} {{ searchQuery }}</ion-label>
         </ion-list-header>
 
         <ion-radio-group v-model="selectedFacilityId">

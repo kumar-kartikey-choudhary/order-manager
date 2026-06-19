@@ -460,6 +460,7 @@ import {
   IonTitle,
   IonToolbar,
   IonButtons,
+  IonButton,
   IonMenuButton,
   IonProgressBar,
   IonSearchbar,

@@ -535,6 +535,7 @@ export const useCustomerStore = defineStore('customerDetail', {
       } else if (contactMechTypeId === 'POSTAL_ADDRESS') {
         await createPartyPostalAddress(partyId, data as any);
       }
+      await new Promise(resolve => setTimeout(resolve, 500));
       await this.loadCustomerProfile(partyId, true);
       triggerCustomerIndex(partyId);
     },
@@ -547,6 +548,7 @@ export const useCustomerStore = defineStore('customerDetail', {
       } else if (contactMechTypeId === 'POSTAL_ADDRESS') {
         await updatePartyPostalAddress(partyId, contactMechId, data as any);
       }
+      await new Promise(resolve => setTimeout(resolve, 500));
       await this.loadCustomerProfile(partyId, true);
       triggerCustomerIndex(partyId);
     },

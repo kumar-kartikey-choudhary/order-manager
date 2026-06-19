@@ -79,9 +79,9 @@
                   <p>{{ translate('Email') }}</p>
                   {{ customer?.email || translate('Email not available') }}
                 </ion-label>
-                <ion-button v-if="!customer?.email && customerPartyId" slot="end" fill="clear" size="small"
-                  @click="openCustomerContactModal('EMAIL_ADDRESS', 'ORDER_EMAIL')">
-                  {{ translate('Add') }}
+                <ion-button v-if="customerPartyId" slot="end" fill="clear" size="small"
+                  @click="openCustomerContactModal('EMAIL_ADDRESS', 'ORDER_EMAIL', customer?.emailContact)">
+                  {{ customer?.email ? translate('Edit') : translate('Add') }}
                 </ion-button>
               </ion-item>
               <ion-item>
@@ -89,9 +89,9 @@
                   <p>{{ translate('Phone') }}</p>
                   {{ customer?.phone || translate('Phone not available') }}
                 </ion-label>
-                <ion-button v-if="!customer?.phone && customerPartyId" slot="end" fill="clear" size="small"
-                  @click="openCustomerContactModal('TELECOM_NUMBER', 'PHONE_BILLING')">
-                  {{ translate('Add') }}
+                <ion-button v-if="customerPartyId" slot="end" fill="clear" size="small"
+                  @click="openCustomerContactModal('TELECOM_NUMBER', 'PHONE_BILLING', customer?.phoneContact)">
+                  {{ customer?.phone ? translate('Edit') : translate('Add') }}
                 </ion-button>
               </ion-item>
               <ion-item>
@@ -111,9 +111,9 @@
                   </template>
                   <div v-else>{{ translate('Billing address not available') }}</div>
                 </ion-label>
-                <ion-button v-if="!billingAddress?.lines?.length && customerPartyId" slot="end" fill="clear" size="small"
-                  @click="openCustomerContactModal('POSTAL_ADDRESS', 'BILLING_LOCATION')">
-                  {{ translate('Add') }}
+                <ion-button v-if="customerPartyId" slot="end" fill="clear" size="small"
+                  @click="openCustomerContactModal('POSTAL_ADDRESS', 'BILLING_LOCATION', billingAddress?.mech)">
+                  {{ billingAddress?.lines?.length ? translate('Edit') : translate('Add') }}
                 </ion-button>
               </ion-item>
             </ion-list>
@@ -1101,26 +1101,33 @@ const order = computed(() => {
 
 const customerProfile = computed(() => customerPartyId.value ? customerStore.getCustomer(customerPartyId.value) : null);
 
+const localEditedContacts = ref<Record<string, any>>({});
+
 const customer = computed(() => {
   const raw = orderDetailStore.current;
   if (!raw) return undefined;
 
-  const emailContact = findOrderContact('EMAIL_ADDRESS', ['ORDER_EMAIL'])
+  const emailContact = localEditedContacts.value['EMAIL_ADDRESS']
+    || findOrderContact('EMAIL_ADDRESS', ['ORDER_EMAIL'])
     || findCustomerContact('EMAIL_ADDRESS', ['ORDER_EMAIL', 'PRIMARY_EMAIL']);
-  const phoneContact = findOrderContact('TELECOM_NUMBER', ['PHONE_BILLING', 'PRIMARY_PHONE', 'PHONE_SHIPPING', 'PHONE_MOBILE'])
+  const phoneContact = localEditedContacts.value['TELECOM_NUMBER']
+    || findOrderContact('TELECOM_NUMBER', ['PHONE_BILLING', 'PRIMARY_PHONE', 'PHONE_SHIPPING', 'PHONE_MOBILE'])
     || findCustomerContact('TELECOM_NUMBER', ['PHONE_BILLING', 'PRIMARY_PHONE', 'PHONE_SHIPPING', 'PHONE_MOBILE']);
 
   return {
     email: contactInfoString(emailContact),
-    phone: formatTelecomNumber(contactTelecomNumber(phoneContact)) || contactInfoString(phoneContact)
+    emailContact,
+    phone: formatTelecomNumber(contactTelecomNumber(phoneContact)) || contactInfoString(phoneContact),
+    phoneContact
   };
 });
 
 const billingAddress = computed(() => {
-  const mech = findOrderContact('POSTAL_ADDRESS', ['BILLING_LOCATION'])
+  const mech = localEditedContacts.value['POSTAL_ADDRESS']
+    || findOrderContact('POSTAL_ADDRESS', ['BILLING_LOCATION'])
     || findCustomerContact('POSTAL_ADDRESS', ['BILLING_LOCATION']);
   const lines = addressLines(contactPostalAddress(mech));
-  return lines.length ? { lines } : undefined;
+  return lines.length ? { lines, mech } : undefined;
 });
 
 const orderTimeline = computed(() => {
@@ -1566,24 +1573,83 @@ async function loadOrder(orderId: string, force = false) {
   ]);
 }
 
-async function openCustomerContactModal(contactMechTypeId: string, contactMechPurposeTypeId: string) {
+function normalizeContactForModal(contact: any, contactMechTypeId: string) {
+  if (!contact) return undefined;
+  const normalized: any = {
+    contactMechId: contact.contactMechId,
+    contactMechTypeId,
+  };
+  if (contactMechTypeId === 'EMAIL_ADDRESS') {
+    normalized.infoString = contactInfoString(contact);
+  } else if (contactMechTypeId === 'TELECOM_NUMBER') {
+    const telecom = contactTelecomNumber(contact);
+    normalized.telecomNumber = {
+      countryCode: telecom?.countryCode || '',
+      areaCode: telecom?.areaCode || '',
+      contactNumber: telecom?.contactNumber || contact.contactNumber || contact.phoneNumber || ''
+    };
+  } else if (contactMechTypeId === 'POSTAL_ADDRESS') {
+    const postal = contactPostalAddress(contact) || {};
+    normalized.postalAddress = {
+      address1: postal.address1 || '',
+      address2: postal.address2 || '',
+      city: postal.city || '',
+      stateProvinceGeoId: postal.stateProvinceGeoId || '',
+      postalCode: postal.postalCode || '',
+      countryGeoId: postal.countryGeoId || ''
+    };
+  }
+  return normalized;
+}
+
+async function openCustomerContactModal(contactMechTypeId: string, contactMechPurposeTypeId: string, existingContactMech?: any) {
   const partyId = customerPartyId.value;
   if (!partyId) {
     await showToast(translate('Customer is not available for this order.'));
     return;
   }
 
+  const normalizedContact = normalizeContactForModal(existingContactMech, contactMechTypeId);
+
   const modal = await modalController.create({
     component: AddContactModal,
-    componentProps: { contactMechTypeId, contactMechPurposeTypeId },
+    componentProps: { contactMechTypeId, contactMechPurposeTypeId, existingContact: normalizedContact },
   });
   await modal.present();
   const { data, role } = await modal.onWillDismiss();
   if (role !== 'confirm' || !data) return;
 
   try {
-    await (customerStore as any).addContact(partyId, contactMechTypeId, data);
-    if (order.value?.id) await loadOrder(order.value.id, true);
+    let targetContactMechId = undefined;
+    const activeCustomerContact = findCustomerContact(contactMechTypeId, [contactMechPurposeTypeId]);
+    if (activeCustomerContact?.contactMechId) {
+      targetContactMechId = activeCustomerContact.contactMechId;
+    }
+
+    if (targetContactMechId) {
+      await (customerStore as any).updateContact(partyId, contactMechTypeId, targetContactMechId, data);
+    } else {
+      await (customerStore as any).addContact(partyId, contactMechTypeId, data);
+    }
+
+    localEditedContacts.value[contactMechTypeId] = {
+      contactMechTypeId,
+      infoString: data.infoString || '',
+      telecomNumber: data.contactNumber ? {
+        countryCode: data.countryCode || '',
+        areaCode: data.areaCode || '',
+        contactNumber: data.contactNumber || ''
+      } : undefined,
+      postalAddress: data.address1 ? {
+        address1: data.address1,
+        address2: data.address2,
+        city: data.city,
+        stateProvinceGeoId: data.stateProvinceGeoId,
+        postalCode: data.postalCode,
+        countryGeoId: data.countryGeoId
+      } : undefined
+    };
+
     await showToast(translate('Customer contact updated successfully.'));
   } catch {
     await showToast(translate('Failed to update customer contact. Please try again.'));

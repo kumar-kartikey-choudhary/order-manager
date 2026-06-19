@@ -73,7 +73,7 @@
         <!-- Card 2: Unfillable — trendline follow-up -->
         <!-- BUSINESS LOGIC COMMENT: Navigate to Unfillable Orders list on click -->
         <!-- stat: number of orders where facility id equals unfillable -->
-        <StatCard button router-link="/unfillable" :title="translate('Unfillable')" :stat="totalUnfillable">
+        <StatCard button router-link="/unfillable" :title="translate('Unfillable today')" :stat="totalUnfillable">
           <Sparkline :points="unfillableTrend" color="danger" />
         </StatCard>
 

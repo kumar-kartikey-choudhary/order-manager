@@ -22,6 +22,7 @@ export function useCustomerDetail(getPartyId: () => string) {
   const timeline = computed(() => store.customerTimeline(partyId.value));
   const recentOrders = computed(() => store.recentOrders(partyId.value));
   const openTasks = computed(() => store.openTasks(partyId.value));
+  const tasksHasMore = computed(() => (store as any).openTasksHasMore(partyId.value) as boolean);
   const customerReturns = computed(() => (store as any).returns(partyId.value));
   const customerCommunications = computed(() => (store as any).communications(partyId.value));
   const mergableDuplicates = computed(() => (store as any).mergableDuplicates(partyId.value) as Array<{ partyId: string; name: string }>);
@@ -70,6 +71,10 @@ export function useCustomerDetail(getPartyId: () => string) {
     return (store as any).loadCustomerCommunications(partyId.value);
   }
 
+  function loadMoreTasks() {
+    return (store as any).loadMoreCustomerTasks(partyId.value);
+  }
+
   function mergeContact(duplicatePartyId: string) {
     return (store as any).mergeContact(partyId.value, duplicatePartyId);
   }
@@ -86,6 +91,7 @@ export function useCustomerDetail(getPartyId: () => string) {
     timeline,
     recentOrders,
     openTasks,
+    tasksHasMore,
     customerReturns,
     customerCommunications,
     ordersStatus,
@@ -105,6 +111,7 @@ export function useCustomerDetail(getPartyId: () => string) {
     expireContact,
     loadReturns,
     loadCommunications,
+    loadMoreTasks,
     mergeContact
   };
 }

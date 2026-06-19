@@ -491,10 +491,19 @@ const orderResponseData = ref({
 async function openShippingAddressModal() {
   const addressModal = await modalController.create({
     component: AddressModal,
-    componentProps: orderForm.value.shippingAddress
+    componentProps: {
+      customerAddress: { ...orderForm.value.shippingAddress }
+    }
   })
 
   await addressModal.present()
+  const { data } = await addressModal.onWillDismiss();
+  if (data?.address) {
+    orderForm.value.shippingAddress = {
+      ...orderForm.value.shippingAddress,
+      ...data.address
+    };
+  }
 }
 
 async function openCustomLineModal() {

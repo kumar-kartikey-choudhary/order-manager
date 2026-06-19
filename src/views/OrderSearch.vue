@@ -187,7 +187,7 @@ const userStore = useUserStore();
 const seedStore = useSeedStore();
 const { searchQuery, searchFilters, searchSort, searchResults, searchTotal, loading, error, hasMore } = storeToRefs(orderStore);
 
-function handleItemClick(order: any, event: Event) {
+function handleOrderRowClick(order: any, event: Event) {
   if (selectMode.value) {
     toggleOrderSelection(order.id);
   } else {

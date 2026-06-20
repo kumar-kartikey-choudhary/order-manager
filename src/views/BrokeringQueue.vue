@@ -5,7 +5,7 @@
     empty-title="No orders awaiting brokering"
     empty-message="Approved orders awaiting brokering and items rejected by a facility will appear here."
     :facility-ids="facilityIds"
-    :on-clear-filters="clearFacilityFilter"
+    @clearFilters="clearFacilityFilter"
   >
     <template #filters>
       <ion-select

@@ -196,9 +196,10 @@ const props = defineProps<{
   emptyTitle: string;
   emptyMessage: string;
   globalActions?: QueueGlobalAction[];
-  onClearFilters?: () => void;
 }>();
-
+const emit = defineEmits<{
+  (e: 'clearFilters'): void;
+}>();
 const orderDetailStore = useOrderDetailStore();
 const orderTaskStore = useOrderTaskStore();
 const productStore = useProductStore();
@@ -454,7 +455,7 @@ function clearFilters() {
     dateFrom: '',
     dateThru: '',
   };
-  props.onClearFilters?.();
+  emit('clearFilters');
 }
 
 function exitSelectMode() {

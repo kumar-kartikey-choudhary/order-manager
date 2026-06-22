@@ -609,29 +609,6 @@ export const useCustomerStore = defineStore('customerDetail', {
         await updatePartyPostalAddress(partyId, contactMechId, data as any);
       }
       triggerCustomerIndex(partyId);
-
-      // Poll for fresh data in background
-      // (async () => {
-      //   for (let i = 0; i < 5; i++) {
-      //     await new Promise(resolve => setTimeout(resolve, 1000));
-      //     try {
-      //       const freshProfile = await getCustomerProfile(partyId);
-      //       const oldContact = freshProfile.contactMechs.find(c => c.contactMechId === contactMechId);
-      //       const isFresh = !oldContact || (oldContact.thruDate && Number(oldContact.thruDate) <= Date.now());
-      //       if (isFresh || i === 4) {
-      //         this.profilesById[partyId] = {
-      //           payload: freshProfile,
-      //           status: 'loaded',
-      //           loadedAt: new Date().toISOString(),
-      //           error: ''
-      //         };
-      //         break;
-      //       }
-      //     } catch (e) {
-      //       // ignore
-      //     }
-      //   }
-      // })();
     },
 
     async expireContact(partyId: string, contactMechId: string) {
@@ -647,27 +624,6 @@ export const useCustomerStore = defineStore('customerDetail', {
       await expirePartyContactMech(partyId, contactMechId);
       triggerCustomerIndex(partyId);
 
-      // Poll for fresh data in background
-      (async () => {
-        for (let i = 0; i < 5; i++) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          try {
-            const freshProfile = await getCustomerProfile(partyId);
-            const oldContact = freshProfile.contactMechs.find(c => c.contactMechId === contactMechId);
-            if (!oldContact || (oldContact.thruDate && Number(oldContact.thruDate) <= Date.now()) || i === 4) {
-              this.profilesById[partyId] = {
-                payload: freshProfile,
-                status: 'loaded',
-                loadedAt: new Date().toISOString(),
-                error: ''
-              };
-              break;
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-      })();
     },
 
     async createRelationship(input: { partyIdFrom: string; partyIdTo: string; partyRelationshipTypeId: string; roleTypeIdFrom: string; roleTypeIdTo: string; fromDate: number; comments?: string }) {

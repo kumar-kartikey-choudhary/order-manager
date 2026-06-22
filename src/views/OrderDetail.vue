@@ -1622,7 +1622,6 @@ function shipGroupProductIdentification(identificationPref: string, item: any): 
 }
 
 onMounted(() => loadOrder(props.orderId));
-onIonViewWillEnter(() => loadOrder(props.orderId, true));
 watch(() => props.orderId, (orderId) => loadOrder(orderId));
 
 async function loadOrder(orderId: string, force = false) {
